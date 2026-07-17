@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { createProposedPlan } from "@/lib/plan-service";
 
 const schema = z.object({
   anchors: z.array(z.object({ id: z.string(), title: z.string().min(1), startTime: z.string().regex(/^\d\d:\d\d$/), endTime: z.string().regex(/^\d\d:\d\d$/) })),
@@ -21,12 +22,8 @@ export async function PUT(request: Request) {
     }
     for (const friction of parsed.data.frictions) await tx.frictionFactor.update({ where: { id: friction.id }, data: { enabled: friction.enabled } });
     if (parsed.data.newFriction) await tx.frictionFactor.create({ data: { id: `friction-${Date.now()}`, patientId: "eleanor-reed", category: "TIME", description: parsed.data.newFriction } });
-    const active = await tx.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, orderBy: { version: "desc" } });
-    if (active) {
-      await tx.carePlanVersion.deleteMany({ where: { patientId: "eleanor-reed", status: "PROPOSED" } });
-      await tx.carePlanVersion.create({ data: { id: `plan-proposed-${Date.now()}`, patientId: "eleanor-reed", version: active.version + 1, status: "PROPOSED", rangeStart: active.rangeStart, rangeEnd: active.rangeEnd, metricsJson: "{}", } });
-    }
     await tx.auditEvent.create({ data: { id: `audit-life-map-${Date.now()}`, patientId: "eleanor-reed", type: "LIFE_MAP_SAVED", summary: "Patient saved synthetic Life Map and requested replanning" } });
   });
+  await createProposedPlan(db, "eleanor-reed");
   return NextResponse.json({ ok: true, proposedPlanCreated: true });
 }

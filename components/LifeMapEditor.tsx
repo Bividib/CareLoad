@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FrictionChip, LifeAnchorRow, PrimaryButton, RoundedCard, SectionTitle } from "@/components/ui/CareLoadUI";
+import { FrictionChip, LifeAnchorRow, RoundedCard, SectionTitle } from "@/components/ui/CareLoadUI";
 
 type Anchor = { id: string; title: string; startTime: string; endTime: string };
 type Friction = { id: string; category: string; description: string; enabled: boolean };
@@ -14,6 +14,10 @@ export function LifeMapEditor({ anchors: initialAnchors, frictions: initialFrict
   const [description, setDescription] = useState("");
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const saveButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (saveButton.current) saveButton.current.dataset.hydrated = "true";
+  }, []);
 
   async function save() {
     setBusy(true);
@@ -40,6 +44,6 @@ export function LifeMapEditor({ anchors: initialAnchors, frictions: initialFrict
       <label className="field">Add a friction description<input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="For example, public transport is unreliable" /></label>
     </RoundedCard>
     {saved && <p className="save-message" role="status">Life Map saved. A proposed plan was created for review; your active plan is unchanged.</p>}
-    <PrimaryButton type="button"><span onClick={save}>{busy ? "Saving…" : "Save my Life Map"}</span></PrimaryButton>
+    <button ref={saveButton} data-hydrated="false" className="primary-button" type="button" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save my Life Map"}</button>
   </>;
 }

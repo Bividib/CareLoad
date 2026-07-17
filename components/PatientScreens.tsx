@@ -1,12 +1,14 @@
 import { Info, Keyboard, Mic, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { LifeMapEditor } from "@/components/LifeMapEditor";
+import { AcceptPlanButton } from "@/components/AcceptPlanButton";
 import { CareMomentCard, ComingSoonState, FrictionChip, MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, SegmentedControl, StatusBanner, TaskRow } from "@/components/ui/CareLoadUI";
 
 export async function TodayScreen() {
   const plan = await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, include: { items: { include: { task: true }, orderBy: { startTime: "asc" } } } });
   const groups = new Map<string, NonNullable<typeof plan>["items"]>();
-  for (const item of plan?.items ?? []) {
+  const today = "2026-07-17";
+  for (const item of plan?.items.filter((candidate) => candidate.occurrenceDate === today) ?? []) {
     if (item.status === "NEEDS_CLARIFICATION") continue;
     const key = item.momentId ?? item.id;
     groups.set(key, [...(groups.get(key) ?? []), item]);
@@ -56,7 +58,8 @@ export function HelpScreen() {
   return <MobileShell active="/patient/help"><PageHeader title="Help" subtitle="About this synthetic CareLoad prototype." /><RoundedCard><SectionTitle>Important boundary</SectionTitle><p>CareLoad supports workload planning with synthetic information. It does not provide medical advice, diagnosis, triage, or real messaging.</p></RoundedCard><ComingSoonState title="More help" /></MobileShell>;
 }
 
-export function UpdateScreen({ preview = false }: { preview?: boolean }) {
+export async function UpdateScreen({ preview = false }: { preview?: boolean }) {
+  const proposed = preview ? await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "PROPOSED" }, orderBy: { version: "desc" } }) : null;
   return <MobileShell active="/patient/care-plan"><PageHeader title={preview ? "Updated plan preview" : "Care-plan update"} /><StatusBanner tone="amber" title="Synthetic cardiology update">Twice-daily blood-pressure monitoring fixture for 14 days.</StatusBanner>
-    {preview ? <><RoundedCard><SectionTitle>What changed</SectionTitle><ul className="observations"><li>Morning reading added</li><li>Questionnaire moved within its verified window</li><li>Prescription collection delegated to Maya</li></ul></RoundedCard><RoundedCard><CareMomentCard title="Morning routine" tasks={["Levothyroxine", "Blood-pressure reading", "Weight check"]} minutes={20} tone="amber" /><CareMomentCard title="Evening routine" tasks={["Atorvastatin", "Foot check", "Symptom log"]} minutes={15} tone="purple" /></RoundedCard><PrimaryButton>Accept updated plan</PrimaryButton></> : <><div className="metric-grid"><span><strong>+28</strong>actions</span><span><strong>+18</strong>interruptions</span><span><strong>4</strong>work conflicts</span></div><RoundedCard><SectionTitle>What CareLoad can solve</SectionTitle><ul className="observations"><li>Bundle compatible home readings</li><li>Move flexible work within verified windows</li><li>Keep protected anchors visible</li></ul></RoundedCard><StatusBanner tone="amber" title="Needs clarification">Evening timing conflicts with childcare; no task will be omitted.</StatusBanner><PrimaryButton href="/patient/updates/demo-update/preview">Preview updated plan</PrimaryButton></>}<SecondaryButton>Ask for clarification</SecondaryButton></MobileShell>;
+    {preview ? <><RoundedCard><SectionTitle>What changed</SectionTitle><ul className="observations"><li>Morning reading added</li><li>Questionnaire moved within its verified window</li><li>Prescription collection delegated to Maya</li></ul></RoundedCard><RoundedCard><CareMomentCard title="Morning routine" tasks={["Levothyroxine", "Blood-pressure reading", "Weight check"]} minutes={20} tone="amber" /><CareMomentCard title="Evening routine" tasks={["Atorvastatin", "Foot check", "Symptom log"]} minutes={15} tone="purple" /></RoundedCard>{proposed ? <AcceptPlanButton planId={proposed.id} /> : <p className="notice">Save the Life Map to create a proposed plan first.</p>}</> : <><div className="metric-grid"><span><strong>+28</strong>actions</span><span><strong>+18</strong>interruptions</span><span><strong>4</strong>work conflicts</span></div><RoundedCard><SectionTitle>What CareLoad can solve</SectionTitle><ul className="observations"><li>Bundle compatible home readings</li><li>Move flexible work within verified windows</li><li>Keep protected anchors visible</li></ul></RoundedCard><StatusBanner tone="amber" title="Needs clarification">Evening timing conflicts with childcare; no task will be omitted.</StatusBanner><PrimaryButton href="/patient/updates/demo-update/preview">Preview updated plan</PrimaryButton></>}<SecondaryButton>Ask for clarification</SecondaryButton></MobileShell>;
 }

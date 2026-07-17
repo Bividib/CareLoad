@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../generated/prisma6";
+import { generatePersistedPlan } from "../lib/plan-service";
 
 const patientId = "eleanor-reed";
 const weekdays = "MON,TUE,WED,THU,FRI";
@@ -101,4 +102,5 @@ export async function resetSyntheticData(db: PrismaClient) {
   await db.auditEvent.create({
     data: { id: "audit-seed", patientId, type: "DEMO_RESET", summary: "Synthetic Eleanor starting state restored" },
   });
+  await generatePersistedPlan(db, "plan-initial");
 }
