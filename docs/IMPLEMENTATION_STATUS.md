@@ -11,7 +11,7 @@ Milestones 1–4 are complete. Later milestone fixtures remain deliberately inac
 | 2 — Patient UI | DONE | All 12 visual references mapped; shared 390–430 px mobile system; Today, Care Plan, Life Map, Messages, onboarding, Daily Signal, and update fixture screens; persisted Life Map editing. |
 | 3 — Deterministic Care Planner | DONE | Pure TypeScript recurrence, slot generation, protected anchors, fixed-first placement, bundling, delegation, unplaced work, explanations, metrics, persisted versions, proposal and acceptance boundary. |
 | 4 — Functional onboarding and synthetic document extraction | DONE | Persisted consent and sources; safe document upload; schema-constrained server-side OpenAI extraction with explicit fixture fallback; source-grounded candidate review; deterministic template matching; Life Map confirmation; proposed-plan preview and acceptance. See `MILESTONE_4_AUDIT.md`. |
-| 5 — Full Daily Signal processing | DEFERRED | Static Milestone 2 UI only; no AI, transcription, or sending. |
+| 5 — Full Daily Signal processing | DONE | Persisted typed/voice entry, schema-constrained extraction, personalised approved questions, evidence review, record-only flow, and one deterministic synthetic urgent rule. See `MILESTONE_5_AUDIT.md`. |
 | 6 — Delayed simulated messaging | DEFERRED | Fixture UI only; no jobs or polling. |
 | 7 — Care Plan Stress Test | DEFERRED | Fixture UI only; no later-milestone stress simulation. |
 | 8 — Demo hardening and release | NOT STARTED | Recommended next milestone. |
@@ -19,7 +19,7 @@ Milestones 1–4 are complete. Later milestone fixtures remain deliberately inac
 ## Current limitations
 
 - Dates are intentionally fixed to the July 2026 synthetic demo week.
-- Daily Signal, messaging, and cardiology update screens are labelled fixtures;
-  their later milestone workflows are not implemented.
+- Messaging and cardiology update screens remain labelled fixtures until their
+  respective milestones are implemented.
 - Playwright uses installed local Chromium; other browser engines are not part
   of the current acceptance scope.

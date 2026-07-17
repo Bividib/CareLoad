@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { LifeMapEditor } from "@/components/LifeMapEditor";
 import { AcceptPlanButton } from "@/components/AcceptPlanButton";
 import { CareMomentCard, ComingSoonState, FrictionChip, MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, SegmentedControl, StatusBanner, TaskRow } from "@/components/ui/CareLoadUI";
+import { DailySignalEntry } from "@/components/DailySignalFlow";
+import { buildDailySignalContext } from "@/lib/daily-signal";
 
 export async function TodayScreen() {
   const plan = await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, include: { items: { include: { task: true }, orderBy: { startTime: "asc" } } } });
@@ -47,7 +49,12 @@ export function MessagesScreen() {
   return <MobileShell active="/patient/messages"><PageHeader title="Messages" subtitle="Synthetic demo conversation — nothing leaves this application." /><RoundedCard><SectionTitle>Your conversation</SectionTitle><div className="message patient"><strong>You</strong><small>Care update · 08:15</small><h3>Summary of your update</h3><p>Stomach discomfort for a few days and more tired than usual; still eating and drinking.</p></div><div className="message simulated"><strong><Sparkles /> Simulated care-team response</strong><small>Fictional Dr Ahmed · demo only · 14:32</small><p>This predefined fictional response does not diagnose or change your care plan.</p></div><div className="meaning"><Info /><div><strong>What this means for today</strong><p>Your active verified plan is unchanged. This prototype cannot provide clinical guidance.</p></div></div></RoundedCard><div className="ai-note"><Sparkles /> AI assistance is not active in this milestone; this is a deterministic fixture.</div></MobileShell>;
 }
 
-export function DailySignalScreen({ review = false }: { review?: boolean }) {
+export async function DailySignalScreen() {
+  const context = await buildDailySignalContext(db, "eleanor-reed");
+  return <DailySignalEntry prompt={context.greetingPrompt} />;
+}
+
+export function LegacyDailySignalFixture({ review = false }: { review?: boolean }) {
   return <MobileShell active="/patient/today"><PageHeader title={review ? "Review your update" : "Daily Signal"} subtitle={review ? "Check these structured demo observations." : "Optional check-in — you can skip this."} />
     {review ? <><RoundedCard><SectionTitle>CareLoad heard</SectionTitle><ul className="observations"><li>Stomach discomfort: present</li><li>Duration: a few days</li><li>Fatigue: more than usual</li><li>Eating and drinking: maintained</li></ul></RoundedCard><RoundedCard><SectionTitle>Why show this?</SectionTitle><p>These patient-reported changes may be useful context in this fictional demo. CareLoad does not diagnose.</p></RoundedCard><PrimaryButton>Send simulated update</PrimaryButton><SecondaryButton>Keep monitoring in the demo</SecondaryButton><p className="notice">This does not diagnose a condition or contact a clinician.</p></> :
     <><RoundedCard className="signal-input"><span className="microphone"><Mic /></span><div className="wave">▂▃▅▂▆▃▂▅▇▃▂▅</div><blockquote>“My stomach has felt uncomfortable for a few days and I am more tired than usual, but I am still eating and drinking.”</blockquote></RoundedCard><SectionTitle>A couple of quick follow-up questions</SectionTitle><RoundedCard><div className="question">How many days has this been going on?</div></RoundedCard><RoundedCard><div className="question">Has anything changed in your medicines recently?</div></RoundedCard><div className="chips">{["1–2 days","3–5 days","More than 5 days","Not sure"].map((text) => <FrictionChip key={text}>{text}</FrictionChip>)}</div><PrimaryButton href="/patient/daily-signal/review"><Sparkles /> Review what CareLoad heard</PrimaryButton></>}

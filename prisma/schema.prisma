@@ -68,6 +68,7 @@ model Patient {
   documents     CareDocument[]
   candidateTasks CandidateCareTask[]
   confirmations PatientFactConfirmation[]
+  dailySignals  DailySignal[]
   planningConsent Boolean             @default(false)
   syntheticDataConsent Boolean        @default(false)
   onboardingCompleted Boolean         @default(false)
@@ -75,6 +76,53 @@ model Patient {
   talkThroughText String?
   talkThroughDraft String?
   createdAt     DateTime            @default(now())
+}
+
+enum DailySignalStatus {
+  DRAFT
+  QUESTIONS
+  CONFIRMED
+  RECORDED_ONLY
+  SENT
+  URGENT_DEMO
+}
+
+enum DailySignalInputMode {
+  TYPED
+  VOICE
+  SAME
+}
+
+model DailySignal {
+  id                  String               @id
+  patientId           String
+  patient             Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  signalDate          String
+  inputMode           DailySignalInputMode
+  rawText             String
+  transcript          String?
+  status              DailySignalStatus    @default(DRAFT)
+  extractionJson      String?
+  questionsJson       String               @default("[]")
+  answersJson         String               @default("{}")
+  confirmedJson       String?
+  trendSummary        String?
+  shareSuggested      Boolean              @default(false)
+  shareReason         String?
+  urgentRuleTriggered Boolean              @default(false)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([patientId, signalDate])
+}
+
+model DailySignalDismissal {
+  id        String   @id
+  patientId String
+  signalDate String
+  createdAt DateTime @default(now())
+
+  @@unique([patientId, signalDate])
 }
 
 model Condition {
