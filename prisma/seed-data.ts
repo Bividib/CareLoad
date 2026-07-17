@@ -4,6 +4,8 @@ const patientId = "eleanor-reed";
 const weekdays = "MON,TUE,WED,THU,FRI";
 
 export async function resetSyntheticData(db: PrismaClient) {
+  await db.simulationResult.deleteMany();
+  await db.carePlanChange.deleteMany();
   await db.simulatedResponseJob.deleteMany();
   await db.message.deleteMany();
   await db.messageThread.deleteMany();

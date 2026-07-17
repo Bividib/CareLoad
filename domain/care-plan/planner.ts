@@ -16,10 +16,14 @@ export function planCare(input: PlannerInput): PlannerResult {
     const task = occurrence.task;
     const anchors = input.anchors.filter((anchor) => anchor.protected && applicable(anchor, occurrence.date));
     const fixed = !task.mayMove || Boolean(task.fixedTime);
-    let candidates = fixed ? [task.fixedTime ?? task.windowStart] : generateSlots(task.windowStart, task.windowEnd, task.durationMinutes);
+    const activeWindowStart = task.frequency === "TWICE_DAILY" && occurrence.ordinal === 1 && task.secondWindowStart ? task.secondWindowStart : task.windowStart;
+    const activeWindowEnd = task.frequency === "TWICE_DAILY" && occurrence.ordinal === 1 && task.secondWindowEnd ? task.secondWindowEnd : task.windowEnd;
+    let candidates = fixed ? [task.fixedTime ?? activeWindowStart] : generateSlots(activeWindowStart, activeWindowEnd, task.durationMinutes);
     if (task.frequency === "TWICE_DAILY") {
-      const midpoint = (toMinutes(task.windowStart) + toMinutes(task.windowEnd)) / 2;
-      candidates = candidates.filter((time) => occurrence.ordinal === 0 ? toMinutes(time) < midpoint : toMinutes(time) >= midpoint);
+      if (!task.secondWindowStart) {
+        const midpoint = (toMinutes(task.windowStart) + toMinutes(task.windowEnd)) / 2;
+        candidates = candidates.filter((time) => occurrence.ordinal === 0 ? toMinutes(time) < midpoint : toMinutes(time) >= midpoint);
+      }
     }
     const ranked = candidates.map((time) => {
       const start = toMinutes(time), end = start + task.durationMinutes;
@@ -50,7 +54,7 @@ export function planCare(input: PlannerInput): PlannerResult {
     }
     const compatibleMoment = choice.compatible[0];
     const momentId = compatibleMoment?.momentId ?? `${occurrence.date}:${choice.time}:${task.bundleGroup ?? task.id}`;
-    scheduled.push({ id: occurrence.id, taskId: task.id, title: task.title, date: occurrence.date, startTime: choice.time, endTime: toTime(toMinutes(choice.time) + task.durationMinutes), momentId, momentTitle: compatibleMoment?.momentTitle ?? titleFor(choice.time), explanation: fixed ? `Retained at ${choice.time} because this verified task is fixed.` : `Scheduled at ${choice.time} inside the approved ${task.windowStart}–${task.windowEnd} window${task.requiredEquipment ? ` while ${task.requiredEquipment} is available at ${task.requiredLocation}` : ""}.` });
+    scheduled.push({ id: occurrence.id, taskId: task.id, title: task.title, date: occurrence.date, startTime: choice.time, endTime: toTime(toMinutes(choice.time) + task.durationMinutes), momentId, momentTitle: compatibleMoment?.momentTitle ?? titleFor(choice.time), explanation: fixed ? `Retained at ${choice.time} because this verified task is fixed.` : `Scheduled at ${choice.time} inside the approved ${activeWindowStart}–${activeWindowEnd} window${task.requiredEquipment ? ` while ${task.requiredEquipment} is available at ${task.requiredLocation}` : ""}.` });
   }
   const metrics = calculateMetrics(scheduled, unplaced, conflicts, input);
   return { scheduled, unplaced, conflicts, metrics, explanations: [...scheduled.map((item) => item.explanation), ...unplaced.map((item) => item.reason)] };

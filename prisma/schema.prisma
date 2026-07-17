@@ -72,6 +72,7 @@ model Patient {
   messageThreads MessageThread[]
   messages      Message[]
   responseJobs  SimulatedResponseJob[]
+  carePlanChanges CarePlanChange[]
   planningConsent Boolean             @default(false)
   syntheticDataConsent Boolean        @default(false)
   onboardingCompleted Boolean         @default(false)
@@ -205,6 +206,8 @@ model VerifiedCareTask {
   timingType        TaskTimingType
   windowStart       String
   windowEnd         String
+  secondWindowStart String?
+  secondWindowEnd   String?
   fixedTime         String?
   frequency         String
   weekdays          String?
@@ -221,6 +224,40 @@ model VerifiedCareTask {
   templateKey       String?              @unique
   candidateTasks    CandidateCareTask[]
   scheduledItems    ScheduledPlanItem[]
+}
+
+enum CarePlanChangeStatus {
+  RECEIVED
+  SIMULATED
+  ACCEPTED
+  KEPT_CURRENT
+}
+
+model CarePlanChange {
+  id              String               @id
+  patientId       String
+  patient         Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  fixtureKey      String
+  source          String
+  title           String
+  originalText    String
+  status          CarePlanChangeStatus @default(RECEIVED)
+  proposedPlanId  String?
+  receivedAt      DateTime             @default(now())
+  acceptedAt      DateTime?
+  simulation      SimulationResult?
+}
+
+model SimulationResult {
+  id                 String         @id
+  changeId           String         @unique
+  change              CarePlanChange @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  baselinePlanId      String
+  proposedPlanId      String
+  metricsJson         String
+  resolvedJson        String
+  unresolvedJson      String
+  createdAt           DateTime       @default(now())
 }
 
 model LifeAnchor {

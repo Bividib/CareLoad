@@ -4,6 +4,7 @@ export type Frequency = "DAILY" | "TWICE_DAILY" | "SELECTED_WEEKDAYS" | "WEEKLY"
 export type PlannerTask = {
   id: string; title: string; frequency: Frequency; weekdays?: Weekday[];
   startDate?: string; endDate?: string; windowStart: string; windowEnd: string;
+  secondWindowStart?: string; secondWindowEnd?: string;
   fixedTime?: string; durationMinutes: number; mayMove: boolean; mayDelegate: boolean;
   requiredLocation?: string; requiredEquipment?: string; bundleGroup?: string;
 };

@@ -1,14 +1,18 @@
 import { Keyboard, Mic, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { LifeMapEditor } from "@/components/LifeMapEditor";
-import { AcceptPlanButton } from "@/components/AcceptPlanButton";
 import { CareMomentCard, ComingSoonState, FrictionChip, MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, SegmentedControl, StatusBanner, TaskRow } from "@/components/ui/CareLoadUI";
 import { DailySignalEntry } from "@/components/DailySignalFlow";
 import { buildDailySignalContext } from "@/lib/daily-signal";
 import { MessagesClient } from "@/components/MessagingClient";
+import { AcceptUpdateButton, ClarificationButton, TriggerUpdateButton } from "@/components/StressTestActions";
 
 export async function TodayScreen() {
-  const plan = await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, include: { items: { include: { task: true }, orderBy: { startTime: "asc" } } } });
+  const [plan, acceptedChange, receivedChange] = await Promise.all([
+    db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, include: { items: { include: { task: true }, orderBy: { startTime: "asc" } } } }),
+    db.carePlanChange.findFirst({ where: { patientId: "eleanor-reed", status: "ACCEPTED" }, orderBy: { acceptedAt: "desc" } }),
+    db.carePlanChange.findFirst({ where: { patientId: "eleanor-reed", status: { in: ["RECEIVED", "SIMULATED"] } } }),
+  ]);
   const groups = new Map<string, NonNullable<typeof plan>["items"]>();
   const today = "2026-07-17";
   for (const item of plan?.items.filter((candidate) => candidate.occurrenceDate === today) ?? []) {
@@ -18,6 +22,8 @@ export async function TodayScreen() {
   }
   return <MobileShell active="/patient/today">
     <div className="greeting"><p>Good morning,</p><h1>Eleanor <span>☀</span></h1><span className="update-pill">Synthetic active plan</span></div>
+    {acceptedChange && <StatusBanner title="Plan updated today">The accepted synthetic cardiology update is now in the active plan.</StatusBanner>}
+    {receivedChange && <StatusBanner tone="amber" title="New update from cardiology"><a href={`/patient/updates/${receivedChange.id}`}>See impact on my week</a></StatusBanner>}
     <RoundedCard><SectionTitle action="View plan">Today’s plan</SectionTitle>
       {[...groups.values()].slice(0, 3).map((items) => <CareMomentCard key={items[0].id} title={items[0].momentTitle ?? "Care moment"} time={items[0].startTime ?? undefined} tasks={items.map((item) => item.task.title)} minutes={items.reduce((sum, item) => sum + item.task.durationMinutes, 0)} tone={(items[0].startTime ?? "") < "10:00" ? "amber" : (items[0].startTime ?? "") < "17:00" ? "blue" : "purple"} />)}
       {!groups.size && <p className="muted">Your generated care moments will appear after reset completes.</p>}
@@ -67,8 +73,12 @@ export function HelpScreen() {
   return <MobileShell active="/patient/help"><PageHeader title="Help" subtitle="About this synthetic CareLoad prototype." /><RoundedCard><SectionTitle>Important boundary</SectionTitle><p>CareLoad supports workload planning with synthetic information. It does not provide medical advice, diagnosis, triage, or real messaging.</p></RoundedCard><ComingSoonState title="More help" /></MobileShell>;
 }
 
-export async function UpdateScreen({ preview = false }: { preview?: boolean }) {
-  const proposed = preview ? await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "PROPOSED" }, orderBy: { version: "desc" } }) : null;
-  return <MobileShell active="/patient/care-plan"><PageHeader title={preview ? "Updated plan preview" : "Care-plan update"} /><StatusBanner tone="amber" title="Synthetic cardiology update">Twice-daily blood-pressure monitoring fixture for 14 days.</StatusBanner>
-    {preview ? <><RoundedCard><SectionTitle>What changed</SectionTitle><ul className="observations"><li>Morning reading added</li><li>Questionnaire moved within its verified window</li><li>Prescription collection delegated to Maya</li></ul></RoundedCard><RoundedCard><CareMomentCard title="Morning routine" tasks={["Levothyroxine", "Blood-pressure reading", "Weight check"]} minutes={20} tone="amber" /><CareMomentCard title="Evening routine" tasks={["Atorvastatin", "Foot check", "Symptom log"]} minutes={15} tone="purple" /></RoundedCard>{proposed ? <AcceptPlanButton planId={proposed.id} /> : <p className="notice">Save the Life Map to create a proposed plan first.</p>}</> : <><div className="metric-grid"><span><strong>+28</strong>actions</span><span><strong>+18</strong>interruptions</span><span><strong>4</strong>work conflicts</span></div><RoundedCard><SectionTitle>What CareLoad can solve</SectionTitle><ul className="observations"><li>Bundle compatible home readings</li><li>Move flexible work within verified windows</li><li>Keep protected anchors visible</li></ul></RoundedCard><StatusBanner tone="amber" title="Needs clarification">Evening timing conflicts with childcare; no task will be omitted.</StatusBanner><PrimaryButton href="/patient/updates/demo-update/preview">Preview updated plan</PrimaryButton></>}<SecondaryButton>Ask for clarification</SecondaryButton></MobileShell>;
+export async function UpdateScreen({ changeId, preview = false }: { changeId: string; preview?: boolean }) {
+  const change = await db.carePlanChange.findUnique({ where: { id: changeId }, include: { simulation: true } });
+  if (!change?.simulation) return <MobileShell active="/patient/care-plan"><PageHeader title="Care-plan update" /><StatusBanner tone="amber" title="Synthetic cardiology update">No update is active yet.</StatusBanner><TriggerUpdateButton /></MobileShell>;
+  const metrics = JSON.parse(change.simulation.metricsJson) as Record<string, number>;
+  const unresolved = JSON.parse(change.simulation.unresolvedJson) as Array<{ occurrenceDate: string; reason: string; violatedConstraints: string[] }>;
+  return <MobileShell active="/patient/care-plan"><PageHeader title={preview ? "Updated plan preview" : "Care Plan Stress Test"} /><StatusBanner tone="amber" title="New update from cardiology">{change.title}<br /><small>Received {change.receivedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></StatusBanner>
+    <RoundedCard><details><summary>View original instruction</summary><p>{change.originalText}</p></details></RoundedCard>
+    {preview ? <><RoundedCard><SectionTitle>What changed</SectionTitle><ul className="observations"><li>Morning and evening readings added inside verified windows</li><li>Compatible morning work bundled</li><li>Flexible work moved only when permitted</li></ul></RoundedCard><RoundedCard><CareMomentCard title="Morning routine" tasks={["Blood-pressure reading", "Existing compatible home tasks"]} minutes={5} tone="amber" /><CareMomentCard title="Evening routine" tasks={["Blood-pressure reading", "Existing evening tasks"]} minutes={5} tone="purple" /></RoundedCard><p className="notice">Before: 0 added actions. After: {metrics.actionsAdded} added actions and {metrics.minutesAdded} minutes.</p><AcceptUpdateButton changeId={change.id} /></> : <><div className="metric-grid"><span><strong>+{metrics.actionsAdded}</strong>actions</span><span><strong>+{metrics.minutesAdded}</strong>minutes</span><span><strong>{metrics.interruptionsAfterOptimisation}</strong>interruptions</span></div><RoundedCard><SectionTitle>What CareLoad can solve</SectionTitle><ul className="observations"><li>Bundle compatible home readings</li><li>Move flexible work within verified windows</li><li>Delegate only explicitly permitted non-clinical work</li></ul></RoundedCard>{unresolved.length > 0 && <StatusBanner tone="amber" title="Requires clarification">{unresolved[0].occurrenceDate}: {unresolved[0].reason} No task is omitted.</StatusBanner>}<PrimaryButton href={`/patient/updates/${change.id}/preview`}>Preview updated plan</PrimaryButton></>}<ClarificationButton changeId={change.id} /><SecondaryButton href="/patient/today">Keep current plan for now</SecondaryButton></MobileShell>;
 }

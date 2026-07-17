@@ -7,7 +7,7 @@ const asFrequency = (value: string): Frequency => {
 };
 const asWeekdays = (value: string | null): Weekday[] => (value?.split(",") ?? []).filter((day): day is Weekday => ["MON","TUE","WED","THU","FRI","SAT","SUN"].includes(day));
 
-export async function generatePersistedPlan(db: PrismaClient, planId: string) {
+export async function generatePersistedPlan(db: PrismaClient, planId: string, options: { includeInactiveTaskIds?: string[]; extraAnchors?: PlannerInput["anchors"] } = {}) {
   const plan = await db.carePlanVersion.findUniqueOrThrow({ where: { id: planId } });
   const patient = await db.patient.findUniqueOrThrow({
     where: { id: plan.patientId },
@@ -15,20 +15,21 @@ export async function generatePersistedPlan(db: PrismaClient, planId: string) {
   });
   const input: PlannerInput = {
     rangeStart: plan.rangeStart, rangeEnd: plan.rangeEnd,
-    tasks: patient.tasks.filter((task) => task.verified && task.active).map((task) => ({
+    tasks: patient.tasks.filter((task) => task.verified && (task.active || options.includeInactiveTaskIds?.includes(task.id))).map((task) => ({
       id: task.id, title: task.title, frequency: asFrequency(task.frequency),
       weekdays: asWeekdays(task.weekdays), startDate: task.startDate ?? undefined,
       endDate: task.endDate ?? undefined, windowStart: task.windowStart,
-      windowEnd: task.windowEnd, fixedTime: task.fixedTime ?? undefined,
+      windowEnd: task.windowEnd, secondWindowStart: task.secondWindowStart ?? undefined,
+      secondWindowEnd: task.secondWindowEnd ?? undefined, fixedTime: task.fixedTime ?? undefined,
       durationMinutes: task.durationMinutes, mayMove: task.mayMove,
       mayDelegate: task.mayDelegate, requiredLocation: task.requiredLocation ?? undefined,
       requiredEquipment: task.requiredEquipment ?? undefined, bundleGroup: task.bundleGroup ?? undefined,
     })),
-    anchors: patient.anchors.map((anchor) => ({
+    anchors: [...patient.anchors.map((anchor) => ({
       id: anchor.id, title: anchor.title, weekdays: asWeekdays(anchor.weekdays),
       startTime: anchor.startTime, endTime: anchor.endTime, protected: anchor.protected,
       location: anchor.location ?? undefined,
-    })),
+    })), ...(options.extraAnchors ?? [])],
     preferences: patient.preferences.filter((item) => item.enabled).map((item) => item.key),
     frictions: patient.frictions.filter((item) => item.enabled).map((item) => item.description),
     supportPeople: patient.supportPeople.map((person) => ({ id: person.id, name: person.name, mayCollectPrescription: person.mayCollectPrescription, availability: person.availability })),

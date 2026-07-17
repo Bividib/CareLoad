@@ -1,5 +1,6 @@
 import { UpdateScreen } from "@/components/PatientScreens";
 
-export default function CarePlanUpdatePage() {
-  return <UpdateScreen />;
+export const dynamic = "force-dynamic";
+export default async function CarePlanUpdatePage({ params }: { params: Promise<{ changeId: string }> }) {
+  return <UpdateScreen changeId={(await params).changeId} />;
 }
