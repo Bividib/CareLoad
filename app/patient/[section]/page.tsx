@@ -1,22 +1,16 @@
 import { notFound } from "next/navigation";
 
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { CarePlanScreen, DailySignalScreen, HelpScreen, LifeMapScreen, MessagesScreen, TodayScreen } from "@/components/PatientScreens";
 
-const sections = {
-  today: "Today",
-  "care-plan": "Care Plan",
-  "life-map": "Add to My Life",
-  "daily-signal": "Daily Signal",
-  messages: "Messages",
-  help: "Help",
-} as const;
+const sections = ["today", "care-plan", "life-map", "daily-signal", "messages", "help"] as const;
+export const dynamic = "force-dynamic";
 
 type PatientSectionPageProps = {
   params: Promise<{ section: string }>;
 };
 
 export function generateStaticParams() {
-  return Object.keys(sections).map((section) => ({ section }));
+  return sections.map((section) => ({ section }));
 }
 
 export default async function PatientSectionPage({
@@ -24,15 +18,14 @@ export default async function PatientSectionPage({
 }: PatientSectionPageProps) {
   const { section } = await params;
 
-  if (!(section in sections)) {
+  if (!sections.includes(section as (typeof sections)[number])) {
     notFound();
   }
 
-  return (
-    <RoutePlaceholder
-      title={sections[section as keyof typeof sections]}
-      description="This patient route is scaffolded only. Stored patient workflows will be added in their ordered milestones."
-    />
-  );
+  if (section === "today") return <TodayScreen />;
+  if (section === "care-plan") return <CarePlanScreen />;
+  if (section === "life-map") return <LifeMapScreen />;
+  if (section === "daily-signal") return <DailySignalScreen />;
+  if (section === "messages") return <MessagesScreen />;
+  return <HelpScreen />;
 }
-

@@ -1,11 +1,5 @@
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { UpdateScreen } from "@/components/PatientScreens";
 
 export default function UpdatedPlanPreviewPage() {
-  return (
-    <RoutePlaceholder
-      title="Updated plan preview"
-      description="Plan version preview and acceptance will be implemented in the Stress Test milestone."
-    />
-  );
+  return <UpdateScreen preview />;
 }
-

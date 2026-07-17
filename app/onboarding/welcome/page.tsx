@@ -1,11 +1,5 @@
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { WelcomeScreen } from "@/components/OnboardingScreens";
 
 export default function WelcomePage() {
-  return (
-    <RoutePlaceholder
-      title="Welcome to CareLoad"
-      description="The consent and welcome flow will be implemented in the onboarding milestone."
-    />
-  );
+  return <WelcomeScreen />;
 }
-

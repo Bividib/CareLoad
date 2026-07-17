@@ -1,11 +1,5 @@
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { UpdateScreen } from "@/components/PatientScreens";
 
 export default function CarePlanUpdatePage() {
-  return (
-    <RoutePlaceholder
-      title="Care Plan Stress Test"
-      description="Deterministic change simulation is deferred until the planner and active plan are implemented."
-    />
-  );
+  return <UpdateScreen />;
 }
-

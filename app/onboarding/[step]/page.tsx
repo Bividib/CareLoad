@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { OnboardingScreen } from "@/components/OnboardingScreens";
 
 const steps = {
   build: "Build your care plan",
@@ -28,11 +28,5 @@ export default async function OnboardingStepPage({
     notFound();
   }
 
-  return (
-    <RoutePlaceholder
-      title={steps[step as keyof typeof steps]}
-      description="This route is reserved by the implementation plan. Its workflow is intentionally outside the foundation milestone."
-    />
-  );
+  return <OnboardingScreen step={step} />;
 }
-

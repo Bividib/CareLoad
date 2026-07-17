@@ -1,0 +1,96 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+import {
+  Bell, CalendarDays, Check, ChevronRight, CircleHelp, ClipboardCheck,
+  Clock3, HeartPulse, Home, MessageCircle, Plus, ShieldCheck,
+} from "lucide-react";
+
+export function CareLoadLogo() {
+  return <Link href="/patient/today" className="logo" aria-label="CareLoad home"><HeartPulse aria-hidden /> <span>CareLoad</span></Link>;
+}
+
+export function NotificationBell() {
+  return <button className="icon-button bell" aria-label="Notifications"><Bell /><i /></button>;
+}
+
+export function AppHeader() {
+  return <header className="app-header"><CareLoadLogo /><NotificationBell /></header>;
+}
+
+export function MobileShell({ children, active, onboarding = false }: { children: ReactNode; active?: string; onboarding?: boolean }) {
+  return <main className={`mobile-shell ${onboarding ? "onboarding-shell" : ""}`}><AppHeader />{children}{!onboarding && <BottomNavigation active={active} />}<footer className="prototype-note">Synthetic hackathon prototype · Not a medical device · Not for real patient care</footer></main>;
+}
+
+const nav = [
+  ["/patient/today", "Today", Home],
+  ["/patient/care-plan", "Care Plan", CalendarDays],
+  ["/patient/life-map", "Add to My Life", Plus],
+  ["/patient/messages", "Messages", MessageCircle],
+  ["/patient/help", "Help", CircleHelp],
+] as const;
+
+export function BottomNavigation({ active }: { active?: string }) {
+  return <nav className="bottom-nav" aria-label="Patient navigation">{nav.map(([href, label, Icon], index) =>
+    <Link key={href} href={href} aria-current={active === href ? "page" : undefined} className={index === 2 ? "add-life" : ""}><span><Icon /></span><small>{label}</small></Link>)}</nav>;
+}
+
+export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return <div className="page-header"><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>;
+}
+
+export function RoundedCard({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <section className={`rounded-card ${className}`}>{children}</section>;
+}
+
+export function StatusBanner({ title, children, tone = "mint" }: { title: string; children?: ReactNode; tone?: "mint" | "amber" | "blue" }) {
+  return <div className={`status-banner ${tone}`}><span className="icon-well"><Check /></span><div><strong>{title}</strong>{children && <p>{children}</p>}</div></div>;
+}
+
+export function DurationPill({ minutes, tone = "blue" }: { minutes: number; tone?: string }) {
+  return <span className={`duration ${tone}`}><Clock3 /> {minutes} min</span>;
+}
+
+export function CareMomentCard({ title, tasks, minutes, tone = "blue", time }: { title: string; tasks: string[]; minutes: number; tone?: string; time?: string }) {
+  return <article className="care-moment"><span className={`moment-icon ${tone}`}><Clock3 /></span><div className="moment-copy">{time && <small>{time}</small>}<h3>{title}</h3><ul>{tasks.map((task) => <li key={task}>{task}</li>)}</ul></div><DurationPill minutes={minutes} tone={tone} /></article>;
+}
+
+export function TaskRow({ title, source, fixed }: { title: string; source: string; fixed: boolean }) {
+  return <div className="task-row"><ClipboardCheck /><div><strong>{title}</strong><small>Source: {source}</small></div><span className={fixed ? "tag fixed" : "tag flexible"}>{fixed ? "Fixed" : "Flexible"}</span><ChevronRight /></div>;
+}
+
+export function SegmentedControl() {
+  return <div className="segments" aria-label="Care plan view"><button>Today</button><button className="selected">This week</button><button>Tasks</button></div>;
+}
+
+export function LifeAnchorRow({ title, time }: { title: string; time: string }) {
+  return <div className="anchor-row"><CalendarDays /><strong>{title}</strong><span>{time}</span><ChevronRight /></div>;
+}
+
+export function FrictionChip({ children, selected = false }: { children: ReactNode; selected?: boolean }) {
+  return <span className={`friction-chip ${selected ? "selected" : ""}`}>{children}</span>;
+}
+
+export function PrimaryButton({ children, href, type = "button" }: { children: ReactNode; href?: string; type?: "button" | "submit" }) {
+  const content = <>{children}<ChevronRight /></>;
+  return href ? <Link className="primary-button" href={href}>{content}</Link> : <button className="primary-button" type={type}>{content}</button>;
+}
+
+export function SecondaryButton({ children, href }: { children: ReactNode; href?: string }) {
+  return href ? <Link className="secondary-button" href={href}>{children}</Link> : <button className="secondary-button">{children}</button>;
+}
+
+export function EmptyState({ title, children }: { title: string; children: ReactNode }) {
+  return <RoundedCard className="empty"><CircleHelp /><h2>{title}</h2><p>{children}</p></RoundedCard>;
+}
+
+export function LoadingSkeleton() { return <div className="loading-skeleton" aria-label="Loading"><i /><i /><i /></div>; }
+
+export function ComingSoonState({ title }: { title: string }) {
+  return <EmptyState title={title}>Coming in the next milestone. No real healthcare connection is used.</EmptyState>;
+}
+
+export function SectionTitle({ children, action }: { children: ReactNode; action?: string }) {
+  return <div className="section-title"><h2>{children}</h2>{action && <span>{action} <ChevronRight /></span>}</div>;
+}
+
+export function VerifiedIcon() { return <span className="icon-well"><ShieldCheck /></span>; }
