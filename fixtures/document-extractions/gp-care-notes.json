@@ -1,0 +1,17 @@
+{
+  "documentTitle":"Synthetic GP Care Notes",
+  "issuingService":"Oak Street GP Practice (fictional)",
+  "documentDate":"2026-07-08",
+  "patientFacts":[],
+  "candidateTasks":[
+    {"title":"Take Levothyroxine before breakfast","description":null,"sourceQuote":"Levothyroxine: take each day before breakfast, between 06:30 and 07:30.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"before breakfast, 06:30-07:30","explicitDuration":null,"requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Take Atorvastatin in the evening","description":null,"sourceQuote":"Atorvastatin: take each evening between 18:00 and 22:00.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"18:00-22:00","explicitDuration":null,"requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Collect repeat prescription","description":null,"sourceQuote":"Collect the repeat prescription on Friday between 14:00 and 17:30.","sourcePage":1,"explicitFrequency":"weekly","explicitTiming":"Friday, 14:00-17:30","explicitDuration":"20 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.98}
+  ],
+  "appointments":[],
+  "medications":[
+    {"name":"Levothyroxine","instruction":"Take each day before breakfast.","sourceQuote":"Levothyroxine: take each day before breakfast, between 06:30 and 07:30."},
+    {"name":"Atorvastatin","instruction":"Take each evening.","sourceQuote":"Atorvastatin: take each evening between 18:00 and 22:00."}
+  ],
+  "uncertainties":[{"description":"The notes do not state whether another person may collect the prescription.","sourceQuote":"Collect the repeat prescription on Friday between 14:00 and 17:30."}]
+}

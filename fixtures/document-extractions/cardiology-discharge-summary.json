@@ -1,0 +1,17 @@
+{
+  "documentTitle": "Synthetic Cardiology Discharge Summary",
+  "issuingService": "Riverside Cardiology Service (fictional)",
+  "documentDate": "2026-07-10",
+  "patientFacts": [{"factType":"equipment","value":"Blood-pressure monitor and scales at home","sourceQuote":"Eleanor confirms that her blood-pressure monitor and scales are kept at home.","confidence":0.99}],
+  "candidateTasks": [
+    {"title":"Morning blood-pressure check","description":null,"sourceQuote":"Measure blood pressure each morning between 06:30 and 08:30.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"06:30-08:30","explicitDuration":null,"requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Morning weight check","description":null,"sourceQuote":"Record weight each morning between 06:30 and 08:30 using the scales at home.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"06:30-08:30","explicitDuration":null,"requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Weekly wellbeing questionnaire","description":null,"sourceQuote":"Complete the wellbeing questionnaire once each week, preferably on Friday.","sourcePage":1,"explicitFrequency":"weekly","explicitTiming":"Friday","explicitDuration":"10 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.98},
+    {"title":"Cardiology appointment","description":null,"sourceQuote":"Cardiology appointment: Wednesday 15 July 2026 at 11:00, Riverside Clinic.","sourcePage":1,"explicitFrequency":"one-off","explicitTiming":"15 July 2026 at 11:00","explicitDuration":"45 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Symptom log","description":null,"sourceQuote":"Write a brief symptom log each evening between 18:00 and 22:00.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"18:00-22:00","explicitDuration":"5 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.98},
+    {"title":"Read heart-health education","description":null,"sourceQuote":"Read the supplied heart-health education during one flexible 15-minute session this week.","sourcePage":1,"explicitFrequency":"weekly","explicitTiming":"flexible","explicitDuration":"15 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.97}
+  ],
+  "appointments":[{"title":"Cardiology appointment","date":"2026-07-15","time":"11:00","location":"Riverside Clinic (fictional)","sourceQuote":"Cardiology appointment: Wednesday 15 July 2026 at 11:00, Riverside Clinic."}],
+  "medications":[],
+  "uncertainties":[]
+}

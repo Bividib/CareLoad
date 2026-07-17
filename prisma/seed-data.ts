@@ -1,10 +1,12 @@
 import type { PrismaClient } from "../generated/prisma6";
-import { generatePersistedPlan } from "../lib/plan-service";
 
 const patientId = "eleanor-reed";
 const weekdays = "MON,TUE,WED,THU,FRI";
 
 export async function resetSyntheticData(db: PrismaClient) {
+  await db.patientFactConfirmation.deleteMany();
+  await db.candidateCareTask.deleteMany();
+  await db.careDocument.deleteMany();
   await db.auditEvent.deleteMany();
   await db.scheduledPlanItem.deleteMany();
   await db.carePlanVersion.deleteMany();
@@ -88,19 +90,18 @@ export async function resetSyntheticData(db: PrismaClient) {
         weekdays: task[10], durationMinutes: task[11], mayMove: task[12],
         mayDelegate: task[13], requiredLocation: task[14],
         requiredEquipment: task[15], bundleGroup: task[16],
+        templateKey: task[0], active: false,
       },
     });
   }
 
-  await db.carePlanVersion.create({
-    data: {
-      id: "plan-initial", patientId, version: 1, status: "ACTIVE",
-      rangeStart: "2026-07-13", rangeEnd: "2026-07-19",
-      metricsJson: "{}", acceptedAt: new Date("2026-07-13T08:00:00Z"),
-    },
-  });
+  await db.patientFactConfirmation.createMany({ data: [
+    { id: "fact-bp-monitor", patientId, key: "bp-monitor-home", label: "Eleanor has a blood-pressure monitor at home" },
+    { id: "fact-prescription-current", patientId, key: "prescription-current", label: "Prescription collection remains current" },
+    { id: "fact-medication-list", patientId, key: "medication-list-current", label: "The medication list is current" },
+    { id: "fact-appointments", patientId, key: "appointments-active", label: "Selected appointments remain active" },
+  ] });
   await db.auditEvent.create({
     data: { id: "audit-seed", patientId, type: "DEMO_RESET", summary: "Synthetic Eleanor starting state restored" },
   });
-  await generatePersistedPlan(db, "plan-initial");
 }

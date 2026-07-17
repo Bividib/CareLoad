@@ -28,3 +28,34 @@ test("persists a Life Map edit and creates a reviewable proposed plan", async ({
   await page.getByRole("button", { name: "Accept proposed plan" }).click();
   await expect(page).toHaveURL(/\/patient\/today$/);
 });
+
+test("completes functional onboarding with deterministic document extraction", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.request.post("/api/demo/reset", { data: { confirmSyntheticReset: true } });
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/onboarding\/welcome$/);
+  await page.getByLabel(/supports planning/i).check();
+  await page.getByLabel(/synthetic data only/i).check();
+  await page.getByRole("button", { name: "Get started" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/build$/);
+  await page.getByRole("button", { name: /Upload documents/ }).click();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByRole("button", { name: "Use all three sample documents" }).click();
+  await expect(page.getByText("cardiology-discharge-summary.pdf")).toBeVisible();
+  await page.getByRole("button", { name: "Process documents" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/processing$/);
+  await page.getByRole("button", { name: "Start extraction" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/review$/, { timeout: 20_000 });
+  await page.getByRole("button", { name: "Confirm all current tasks" }).click();
+  await page.getByRole("button", { name: "Continue to Life Map" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/life-map$/);
+  await expect(page.getByRole("button", { name: "Save my Life Map" })).toHaveAttribute("data-hydrated", "true");
+  await page.getByRole("button", { name: "Save my Life Map" }).click();
+  await expect(page).toHaveURL(/\/onboarding\/preview$/, { timeout: 20_000 });
+  await page.getByRole("button", { name: "Accept plan" }).click();
+  await expect(page).toHaveURL(/\/patient\/today$/, { timeout: 20_000 });
+  await page.reload();
+  await expect(page.getByText("Today’s plan")).toBeVisible();
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/patient\/today$/);
+});

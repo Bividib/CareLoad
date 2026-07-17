@@ -1,0 +1,14 @@
+{
+  "documentTitle":"Synthetic Diabetes Medication List",
+  "issuingService":"Meadow Diabetes Clinic (fictional)",
+  "documentDate":"2026-07-09",
+  "patientFacts":[],
+  "candidateTasks":[
+    {"title":"Take Metformin with breakfast","description":null,"sourceQuote":"Metformin: take with breakfast each day.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"with breakfast","explicitDuration":null,"requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Evening foot check","description":null,"sourceQuote":"Check feet each evening between 18:00 and 22:00.","sourcePage":1,"explicitFrequency":"daily","explicitTiming":"18:00-22:00","explicitDuration":"5 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99},
+    {"title":"Diabetes review appointment","description":null,"sourceQuote":"Diabetes review: Monday 13 July 2026 at 15:30, Meadow Clinic.","sourcePage":1,"explicitFrequency":"one-off","explicitTiming":"13 July 2026 at 15:30","explicitDuration":"45 minutes","requiresPatientConfirmation":true,"requiresClinicalVerification":false,"confidence":0.99}
+  ],
+  "appointments":[{"title":"Diabetes review appointment","date":"2026-07-13","time":"15:30","location":"Meadow Clinic (fictional)","sourceQuote":"Diabetes review: Monday 13 July 2026 at 15:30, Meadow Clinic."}],
+  "medications":[{"name":"Metformin","instruction":"Take with breakfast each day.","sourceQuote":"Metformin: take with breakfast each day."}],
+  "uncertainties":[]
+}

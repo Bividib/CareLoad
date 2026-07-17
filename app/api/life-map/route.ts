@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createProposedPlan } from "@/lib/plan-service";
+import { createInitialProposedPlan, createProposedPlan } from "@/lib/plan-service";
 
 const schema = z.object({
   anchors: z.array(z.object({ id: z.string(), title: z.string().min(1), startTime: z.string().regex(/^\d\d:\d\d$/), endTime: z.string().regex(/^\d\d:\d\d$/) })),
@@ -24,6 +24,8 @@ export async function PUT(request: Request) {
     if (parsed.data.newFriction) await tx.frictionFactor.create({ data: { id: `friction-${Date.now()}`, patientId: "eleanor-reed", category: "TIME", description: parsed.data.newFriction } });
     await tx.auditEvent.create({ data: { id: `audit-life-map-${Date.now()}`, patientId: "eleanor-reed", type: "LIFE_MAP_SAVED", summary: "Patient saved synthetic Life Map and requested replanning" } });
   });
-  await createProposedPlan(db, "eleanor-reed");
+  const active = await db.carePlanVersion.count({ where: { patientId: "eleanor-reed", status: "ACTIVE" } });
+  if (active) await createProposedPlan(db, "eleanor-reed");
+  else await createInitialProposedPlan(db, "eleanor-reed");
   return NextResponse.json({ ok: true, proposedPlanCreated: true });
 }

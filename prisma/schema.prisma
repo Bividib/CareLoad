@@ -65,6 +65,15 @@ model Patient {
   supportPeople SupportPerson[]
   planVersions  CarePlanVersion[]
   auditEvents   AuditEvent[]
+  documents     CareDocument[]
+  candidateTasks CandidateCareTask[]
+  confirmations PatientFactConfirmation[]
+  planningConsent Boolean             @default(false)
+  syntheticDataConsent Boolean        @default(false)
+  onboardingCompleted Boolean         @default(false)
+  onboardingSources String            @default("[]")
+  talkThroughText String?
+  talkThroughDraft String?
   createdAt     DateTime            @default(now())
 }
 
@@ -99,6 +108,9 @@ model VerifiedCareTask {
   requiredEquipment String?
   bundleGroup       String?
   verified          Boolean             @default(true)
+  active            Boolean             @default(false)
+  templateKey       String?              @unique
+  candidateTasks    CandidateCareTask[]
   scheduledItems    ScheduledPlanItem[]
 }
 
@@ -183,4 +195,74 @@ model AuditEvent {
   type      String
   summary   String
   createdAt DateTime @default(now())
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  EXTRACTED
+  FAILED
+}
+
+enum CandidateTaskStatus {
+  PENDING
+  CONFIRMED
+  OUTDATED
+  UNSURE
+  NEEDS_CLINICAL_VERIFICATION
+}
+
+model CareDocument {
+  id              String         @id
+  patientId       String
+  patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  originalName    String
+  safeName        String
+  mimeType        String
+  sizeBytes       Int
+  storagePath     String
+  status          DocumentStatus @default(UPLOADED)
+  extractionMode  String?
+  errorMessage    String?
+  documentTitle   String?
+  issuingService  String?
+  documentDate    String?
+  uncertaintiesJson String       @default("[]")
+  candidateTasks  CandidateCareTask[]
+  createdAt       DateTime       @default(now())
+}
+
+model CandidateCareTask {
+  id                           String              @id
+  patientId                    String
+  patient                      Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  documentId                   String
+  document                     CareDocument        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  title                        String
+  description                  String?
+  sourceQuote                  String
+  sourcePage                   Int?
+  explicitFrequency            String?
+  explicitTiming               String?
+  explicitDuration             String?
+  requiresPatientConfirmation  Boolean
+  requiresClinicalVerification Boolean
+  confidence                   Float
+  status                       CandidateTaskStatus @default(PENDING)
+  templateKey                  String?
+  verifiedTaskId               String?
+  verifiedTask                 VerifiedCareTask?   @relation(fields: [verifiedTaskId], references: [id])
+  decisionAt                   DateTime?
+  createdAt                    DateTime            @default(now())
+}
+
+model PatientFactConfirmation {
+  id        String   @id
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  key       String
+  label     String
+  answer    String   @default("UNANSWERED")
+  updatedAt DateTime @updatedAt
+  @@unique([patientId, key])
 }

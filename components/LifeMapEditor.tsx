@@ -7,7 +7,7 @@ import { FrictionChip, LifeAnchorRow, RoundedCard, SectionTitle } from "@/compon
 type Anchor = { id: string; title: string; startTime: string; endTime: string };
 type Friction = { id: string; category: string; description: string; enabled: boolean };
 
-export function LifeMapEditor({ anchors: initialAnchors, frictions: initialFrictions }: { anchors: Anchor[]; frictions: Friction[] }) {
+export function LifeMapEditor({ anchors: initialAnchors, frictions: initialFrictions, onboarding = false }: { anchors: Anchor[]; frictions: Friction[]; onboarding?: boolean }) {
   const router = useRouter();
   const [anchors, setAnchors] = useState(initialAnchors);
   const [frictions, setFrictions] = useState(initialFrictions);
@@ -26,7 +26,7 @@ export function LifeMapEditor({ anchors: initialAnchors, frictions: initialFrict
       body: JSON.stringify({ anchors, frictions, newFriction: description || undefined }),
     });
     setBusy(false);
-    if (response.ok) { setSaved(true); setDescription(""); router.refresh(); }
+    if (response.ok) { setSaved(true); setDescription(""); if (onboarding) router.push("/onboarding/preview"); else router.refresh(); }
   }
 
   return <>

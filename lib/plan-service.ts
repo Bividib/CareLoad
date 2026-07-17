@@ -15,7 +15,7 @@ export async function generatePersistedPlan(db: PrismaClient, planId: string) {
   });
   const input: PlannerInput = {
     rangeStart: plan.rangeStart, rangeEnd: plan.rangeEnd,
-    tasks: patient.tasks.filter((task) => task.verified).map((task) => ({
+    tasks: patient.tasks.filter((task) => task.verified && task.active).map((task) => ({
       id: task.id, title: task.title, frequency: asFrequency(task.frequency),
       weekdays: asWeekdays(task.weekdays), startDate: task.startDate ?? undefined,
       endDate: task.endDate ?? undefined, windowStart: task.windowStart,
@@ -67,12 +67,23 @@ export async function createProposedPlan(db: PrismaClient, patientId: string) {
   return proposed;
 }
 
+export async function createInitialProposedPlan(db: PrismaClient, patientId: string) {
+  await db.carePlanVersion.deleteMany({ where: { patientId, status: "PROPOSED" } });
+  const proposed = await db.carePlanVersion.create({ data: {
+    id: `plan-initial-proposed-${Date.now()}`, patientId, version: 1, status: "PROPOSED",
+    rangeStart: "2026-07-13", rangeEnd: "2026-07-19", metricsJson: "{}",
+  } });
+  await generatePersistedPlan(db, proposed.id);
+  return proposed;
+}
+
 export async function acceptProposedPlan(db: PrismaClient, planId: string) {
   return db.$transaction(async (tx) => {
     const proposed = await tx.carePlanVersion.findUniqueOrThrow({ where: { id: planId } });
     if (proposed.status !== "PROPOSED") throw new Error("Only a proposed plan can be accepted.");
     await tx.carePlanVersion.updateMany({ where: { patientId: proposed.patientId, status: "ACTIVE" }, data: { status: "SUPERSEDED" } });
     const active = await tx.carePlanVersion.update({ where: { id: planId }, data: { status: "ACTIVE", acceptedAt: new Date() } });
+    await tx.patient.update({ where: { id: proposed.patientId }, data: { onboardingCompleted: true } });
     await tx.auditEvent.create({ data: { id: `audit-plan-accepted-${Date.now()}`, patientId: proposed.patientId, type: "PLAN_ACCEPTED", summary: `Patient accepted synthetic plan version ${proposed.version}` } });
     return active;
   });
