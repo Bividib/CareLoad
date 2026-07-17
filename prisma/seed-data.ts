@@ -4,6 +4,7 @@ const patientId = "eleanor-reed";
 const weekdays = "MON,TUE,WED,THU,FRI";
 
 export async function resetSyntheticData(db: PrismaClient) {
+  await db.demoSetting.deleteMany();
   await db.simulationResult.deleteMany();
   await db.carePlanChange.deleteMany();
   await db.simulatedResponseJob.deleteMany();
@@ -111,4 +112,5 @@ export async function resetSyntheticData(db: PrismaClient) {
   await db.auditEvent.create({
     data: { id: "audit-seed", patientId, type: "DEMO_RESET", summary: "Synthetic Eleanor starting state restored" },
   });
+  await db.demoSetting.create({ data: { id: "demo", fixtureMode: true } });
 }

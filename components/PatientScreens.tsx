@@ -6,6 +6,7 @@ import { DailySignalEntry } from "@/components/DailySignalFlow";
 import { buildDailySignalContext } from "@/lib/daily-signal";
 import { MessagesClient } from "@/components/MessagingClient";
 import { AcceptUpdateButton, ClarificationButton, TriggerUpdateButton } from "@/components/StressTestActions";
+import { AcceptPlanButton } from "@/components/AcceptPlanButton";
 
 export async function TodayScreen() {
   const [plan, acceptedChange, receivedChange] = await Promise.all([
@@ -75,7 +76,10 @@ export function HelpScreen() {
 
 export async function UpdateScreen({ changeId, preview = false }: { changeId: string; preview?: boolean }) {
   const change = await db.carePlanChange.findUnique({ where: { id: changeId }, include: { simulation: true } });
-  if (!change?.simulation) return <MobileShell active="/patient/care-plan"><PageHeader title="Care-plan update" /><StatusBanner tone="amber" title="Synthetic cardiology update">No update is active yet.</StatusBanner><TriggerUpdateButton /></MobileShell>;
+  if (!change?.simulation) {
+    const proposed = preview ? await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "PROPOSED" }, orderBy: { version: "desc" } }) : null;
+    return <MobileShell active="/patient/care-plan"><PageHeader title={preview ? "Proposed plan preview" : "Care-plan update"} /><StatusBanner tone="amber" title="Synthetic cardiology update">{proposed ? "Review the proposed plan created from your saved Life Map." : "No update is active yet."}</StatusBanner>{proposed ? <AcceptPlanButton planId={proposed.id} /> : <TriggerUpdateButton />}</MobileShell>;
+  }
   const metrics = JSON.parse(change.simulation.metricsJson) as Record<string, number>;
   const unresolved = JSON.parse(change.simulation.unresolvedJson) as Array<{ occurrenceDate: string; reason: string; violatedConstraints: string[] }>;
   return <MobileShell active="/patient/care-plan"><PageHeader title={preview ? "Updated plan preview" : "Care Plan Stress Test"} /><StatusBanner tone="amber" title="New update from cardiology">{change.title}<br /><small>Received {change.receivedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small></StatusBanner>

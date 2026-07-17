@@ -15,8 +15,9 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Enter a short Daily Signal before continuing." }, { status: 400 });
   const patientId = "eleanor-reed";
   const context = await buildDailySignalContext(db, patientId);
+  const setting = await db.demoSetting.findUnique({ where: { id: "demo" } });
   try {
-    const extraction = await extractDailySignal(parsed.data.text, context, parsed.data.forceFixture);
+    const extraction = await extractDailySignal(parsed.data.text, context, parsed.data.forceFixture || setting?.fixtureMode);
     const questions = selectQuestions(extraction.suggestedQuestionIds, context.conditions);
     const recent = await db.dailySignal.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take: 7 });
     const id = `signal-${Date.now()}`;
@@ -34,4 +35,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Daily Signal analysis failed. Your text is still in this browser; retry or use demo extraction." }, { status: 502 });
   }
 }
-

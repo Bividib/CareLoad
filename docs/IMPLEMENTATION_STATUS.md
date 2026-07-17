@@ -14,7 +14,7 @@ Milestones 1–4 are complete. Later milestone fixtures remain deliberately inac
 | 5 — Full Daily Signal processing | DONE | Persisted typed/voice entry, schema-constrained extraction, personalised approved questions, evidence review, record-only flow, and one deterministic synthetic urgent rule. See `MILESTONE_5_AUDIT.md`. |
 | 6 — Delayed simulated messaging | DONE | Transactional patient sending, persisted due jobs, idempotent poll processing, deterministic fictional response families, unread state, and reusable clarification messaging. See `MILESTONE_6_AUDIT.md`. |
 | 7 — Care Plan Stress Test | DONE | Persisted cardiology fixture, deterministic 14-day simulation and metrics, proposed-plan isolation, unresolved work, clarification reuse, preview, and transactional acceptance. See `MILESTONE_7_AUDIT.md`. |
-| 8 — Demo hardening and release | NOT STARTED | Recommended next milestone. |
+| 8 — Demo hardening and release | DONE | Eight deterministic checkpoints, persisted fixture control, complete E2E flow, error/loading/accessibility hardening, presenter checklist, README, and final demo-path audit. See `MILESTONE_8_AUDIT.md`. |
 
 ## Current limitations
 

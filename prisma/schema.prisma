@@ -187,6 +187,12 @@ model DailySignalDismissal {
   @@unique([patientId, signalDate])
 }
 
+model DemoSetting {
+  id          String   @id
+  fixtureMode Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
 model Condition {
   id        String  @id
   name      String

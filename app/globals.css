@@ -145,3 +145,8 @@ button {
     animation-iteration-count: 1 !important;
   }
 }
+.demo-page { max-width:760px; margin:0 auto; padding:32px 20px; color:var(--navy-950); }
+.demo-controls { display:grid; gap:12px; margin:24px 0; padding:20px; border-radius:20px; background:#fff; box-shadow:0 7px 22px rgb(19 45 80 / 8%); }
+.demo-controls button,.demo-controls select { min-height:44px; padding:10px; border:1px solid var(--blue-600); border-radius:10px; background:#fff; }
+.demo-controls label { display:grid; gap:6px; }
+.demo-page li { margin:10px 0; line-height:1.45; }
