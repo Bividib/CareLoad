@@ -29,7 +29,7 @@ export async function extractDailySignal(text: string, context: Awaited<ReturnTy
   if (forceFixture || process.env.DEMO_AI_FALLBACK === "true" || !process.env.OPENAI_API_KEY) return dailySignalExtractionSchema.parse(fixtureForText(text));
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const response = await client.responses.parse({
-    model: process.env.OPENAI_TEXT_MODEL ?? "gpt-5.6", store: false,
+    model: process.env.OPENAI_TEXT_MODEL ?? "gpt-5", store: false,
     input: [{ role: "system", content: rules }, { role: "user", content: JSON.stringify({ text, context }) }],
     text: { format: zodTextFormat(dailySignalExtractionSchema, "daily_signal_extraction") },
   });

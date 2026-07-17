@@ -3,7 +3,7 @@
 Last updated: 17 July 2026
 
 Allowed statuses: `DONE`, `IN PROGRESS`, `BLOCKED`, `DEFERRED`, `NOT STARTED`.
-Milestones 1–4 are complete. Later milestone fixtures remain deliberately inactive.
+Milestones 1–8 were re-verified during final acceptance.
 
 | Milestone | Status | Evidence |
 |---|---|---|
@@ -19,7 +19,23 @@ Milestones 1–4 are complete. Later milestone fixtures remain deliberately inac
 ## Current limitations
 
 - Dates are intentionally fixed to the July 2026 synthetic demo week.
-- Messaging and cardiology update screens remain labelled fixtures until their
-  respective milestones are implemented.
 - Playwright uses installed local Chromium; other browser engines are not part
   of the current acceptance scope.
+- Live `gpt-5` document and Daily Signal extraction passed with the supplied
+  server-side key, but took about 67 and 76 seconds respectively; fixture mode
+  is recommended for a time-bounded presentation.
+- Browser microphone capture is implemented with a typed fallback, but physical
+  microphone hardware was not available during the final automated audit.
+- `npm audit` reports five upstream dependency advisories (two moderate, three
+  high); none is exercised by the local synthetic demo path.
+
+## Final demo readiness
+
+**READY WITH KNOWN LIMITATIONS**
+
+Evidence: clean reset/migrations/seed, lint, strict type-check, 40/40 Vitest
+tests, production build, and 10/10 Playwright tests across 390 × 844 and
+430 × 932 passed. Live server-side OpenAI structured extraction passed after
+correcting the default model to one available to the supplied project. The
+complete persisted workflow, delayed-response refresh path, fixture fallback,
+and accepted-plan Today state passed in Playwright.

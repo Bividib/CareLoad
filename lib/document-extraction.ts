@@ -33,7 +33,7 @@ export async function liveExtraction(storagePath: string, mimeType: string): Pro
     ? [{ type: "input_file" as const, filename: path.basename(storagePath), file_data: `data:application/pdf;base64,${bytes.toString("base64")}` }, { type: "input_text" as const, text: systemRules }]
     : [{ type: "input_text" as const, text: `${systemRules}\n\nDOCUMENT:\n${bytes.toString("utf8")}` }];
   const response = await client.responses.parse({
-    model: process.env.OPENAI_TEXT_MODEL ?? "gpt-5.6",
+    model: process.env.OPENAI_TEXT_MODEL ?? "gpt-5",
     store: false,
     input: [{ role: "user", content }],
     text: { format: zodTextFormat(documentExtractionSchema, "document_extraction") },
