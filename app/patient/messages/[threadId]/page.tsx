@@ -1,11 +1,6 @@
-import { RoutePlaceholder } from "@/components/shell/RoutePlaceholder";
+import { MessagesScreen } from "@/components/PatientScreens";
 
-export default function MessageThreadPage() {
-  return (
-    <RoutePlaceholder
-      title="Message thread"
-      description="Persisted, clearly labelled simulated messages will be implemented after the Daily Signal flow."
-    />
-  );
+export const dynamic = "force-dynamic";
+export default async function MessageThreadPage({ params }: { params: Promise<{ threadId: string }> }) {
+  return <MessagesScreen selectedId={(await params).threadId} />;
 }
-

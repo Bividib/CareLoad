@@ -6,6 +6,7 @@ import { Keyboard, Mic, Square, X } from "lucide-react";
 import type { DailySignalExtraction } from "@/domain/daily-signal/schema";
 import type { QuestionDefinition } from "@/domain/daily-signal/questions";
 import { MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, StatusBanner } from "@/components/ui/CareLoadUI";
+import { SendUpdateButton } from "@/components/MessagingClient";
 
 type ReviewData = { id: string; rawText: string; extraction: DailySignalExtraction; questions: QuestionDefinition[]; answers: Record<string, string>; urgent: boolean; trendSummary: string | null };
 
@@ -105,6 +106,6 @@ export function DailySignalReview({ data }: { data: ReviewData }) {
     {data.questions.length > 0 && <><SectionTitle>Up to two quick questions</SectionTitle>{data.questions.map((question) => <RoundedCard key={question.id}><label className="field">{question.text}<select value={answers[question.id] ?? ""} onChange={(event) => setAnswers((old) => ({ ...old, [question.id]: event.target.value }))}><option value="">Choose an answer</option>{(question.options ?? ["Yes", "No", "Not sure"]).map((option) => <option key={option}>{option}</option>)}</select></label></RoundedCard>)}</>}
     {data.extraction.shareSuggested && <StatusBanner tone="blue" title="Why sharing is suggested">{data.extraction.shareReason}</StatusBanner>}
     <p className="notice">This does not diagnose a condition.</p>
-    {!confirmed ? <><PrimaryButton><span onClick={() => void finish("CONFIRM")}>{busy ? "Saving…" : "Yes, that is right"}</span></PrimaryButton><SecondaryButton href="/patient/daily-signal">Edit</SecondaryButton><SecondaryButton><span onClick={() => void finish("RECORD_ONLY")}>Keep monitoring</span></SecondaryButton></> : <><StatusBanner title="Confirmed">Only these patient-confirmed observations can be included in an update.</StatusBanner><PrimaryButton href={`/patient/messages?send=${data.id}`}>Send update</PrimaryButton><SecondaryButton><span onClick={() => router.push("/patient/today")}>Keep monitoring</span></SecondaryButton></>}
+    {!confirmed ? <><PrimaryButton><span onClick={() => void finish("CONFIRM")}>{busy ? "Saving…" : "Yes, that is right"}</span></PrimaryButton><SecondaryButton href="/patient/daily-signal">Edit</SecondaryButton><SecondaryButton><span onClick={() => void finish("RECORD_ONLY")}>Keep monitoring</span></SecondaryButton></> : <><StatusBanner title="Confirmed">Only these patient-confirmed observations can be included in an update.</StatusBanner><SendUpdateButton signalId={data.id} /><SecondaryButton><span onClick={() => router.push("/patient/today")}>Keep monitoring</span></SecondaryButton></>}
   </MobileShell>;
 }

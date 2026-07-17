@@ -1,10 +1,11 @@
-import { Info, Keyboard, Mic, Sparkles } from "lucide-react";
+import { Keyboard, Mic, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { LifeMapEditor } from "@/components/LifeMapEditor";
 import { AcceptPlanButton } from "@/components/AcceptPlanButton";
 import { CareMomentCard, ComingSoonState, FrictionChip, MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, SegmentedControl, StatusBanner, TaskRow } from "@/components/ui/CareLoadUI";
 import { DailySignalEntry } from "@/components/DailySignalFlow";
 import { buildDailySignalContext } from "@/lib/daily-signal";
+import { MessagesClient } from "@/components/MessagingClient";
 
 export async function TodayScreen() {
   const plan = await db.carePlanVersion.findFirst({ where: { patientId: "eleanor-reed", status: "ACTIVE" }, include: { items: { include: { task: true }, orderBy: { startTime: "asc" } } } });
@@ -45,8 +46,9 @@ export async function LifeMapScreen() {
   return <MobileShell active="/patient/life-map"><PageHeader title="Add to My Life" subtitle="Help us understand your real day." /><LifeMapEditor anchors={anchors} frictions={frictions} /></MobileShell>;
 }
 
-export function MessagesScreen() {
-  return <MobileShell active="/patient/messages"><PageHeader title="Messages" subtitle="Synthetic demo conversation — nothing leaves this application." /><RoundedCard><SectionTitle>Your conversation</SectionTitle><div className="message patient"><strong>You</strong><small>Care update · 08:15</small><h3>Summary of your update</h3><p>Stomach discomfort for a few days and more tired than usual; still eating and drinking.</p></div><div className="message simulated"><strong><Sparkles /> Simulated care-team response</strong><small>Fictional Dr Ahmed · demo only · 14:32</small><p>This predefined fictional response does not diagnose or change your care plan.</p></div><div className="meaning"><Info /><div><strong>What this means for today</strong><p>Your active verified plan is unchanged. This prototype cannot provide clinical guidance.</p></div></div></RoundedCard><div className="ai-note"><Sparkles /> AI assistance is not active in this milestone; this is a deterministic fixture.</div></MobileShell>;
+export async function MessagesScreen({ selectedId }: { selectedId?: string } = {}) {
+  const threads = await db.messageThread.findMany({ where: { patientId: "eleanor-reed" }, include: { messages: { orderBy: { createdAt: "asc" } }, jobs: true }, orderBy: { updatedAt: "desc" } });
+  return <MessagesClient selectedId={selectedId} initial={{ threads: threads.map((thread) => ({ ...thread, messages: thread.messages.map((message) => ({ ...message, createdAt: message.createdAt.toISOString() })), jobs: thread.jobs.map((job) => ({ state: job.state })) })), pending: threads.some((thread) => thread.jobs.some((job) => job.state === "PENDING")), unreadCount: threads.filter((thread) => thread.unread).length }} />;
 }
 
 export async function DailySignalScreen() {

@@ -69,6 +69,9 @@ model Patient {
   candidateTasks CandidateCareTask[]
   confirmations PatientFactConfirmation[]
   dailySignals  DailySignal[]
+  messageThreads MessageThread[]
+  messages      Message[]
+  responseJobs  SimulatedResponseJob[]
   planningConsent Boolean             @default(false)
   syntheticDataConsent Boolean        @default(false)
   onboardingCompleted Boolean         @default(false)
@@ -112,8 +115,66 @@ model DailySignal {
   urgentRuleTriggered Boolean              @default(false)
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+  thread              MessageThread?
 
   @@index([patientId, signalDate])
+}
+
+enum MessageAuthor {
+  PATIENT
+  SIMULATED_CARE_TEAM
+}
+
+enum ResponseJobState {
+  PENDING
+  PROCESSED
+  FAILED
+  CANCELLED
+}
+
+model MessageThread {
+  id            String   @id
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  subject       String
+  dailySignalId String?  @unique
+  dailySignal   DailySignal? @relation(fields: [dailySignalId], references: [id])
+  unread        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  messages      Message[]
+  jobs          SimulatedResponseJob[]
+}
+
+model Message {
+  id        String        @id
+  threadId  String
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  patientId String
+  patient   Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author    MessageAuthor
+  body      String
+  metadataJson String     @default("{}")
+  createdAt DateTime      @default(now())
+  jobs      SimulatedResponseJob[]
+}
+
+model SimulatedResponseJob {
+  id                String           @id
+  patientId         String
+  patient           Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  threadId          String
+  thread            MessageThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  triggeringMessageId String
+  triggeringMessage Message          @relation(fields: [triggeringMessageId], references: [id])
+  family            String
+  state             ResponseJobState @default(PENDING)
+  dueAt             DateTime
+  processedAt       DateTime?
+  errorMessage      String?
+  createdAt         DateTime         @default(now())
+
+  @@index([state, dueAt])
 }
 
 model DailySignalDismissal {
