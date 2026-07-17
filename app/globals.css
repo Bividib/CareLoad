@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+:root {
+  --navy-950: #0b1f4d;
+  --navy-800: #17366f;
+  --blue-600: #1769e0;
+  --blue-500: #2f7df4;
+  --teal-600: #079d96;
+  --teal-500: #18b7a8;
+  --mint-100: #eaf9f6;
+  --blue-100: #edf5ff;
+  --purple-100: #f4eeff;
+  --yellow-100: #fff6dd;
+  --yellow-500: #f4b82b;
+  --rose-100: #fff0f2;
+  --green-100: #eaf8ef;
+  --green-600: #22a76a;
+  --amber-100: #fff6de;
+  --amber-700: #a65e00;
+  --red-100: #fff0f0;
+  --red-600: #d94343;
+  --grey-50: #fafcff;
+  --grey-100: #f4f7fa;
+  --grey-300: #d8e0ea;
+  --grey-500: #718096;
+  --white: #ffffff;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--grey-100);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--grey-100);
+  color: var(--navy-950);
+  font-family: Inter, Geist, ui-sans-serif, system-ui, sans-serif;
+}
+
+a,
+button {
+  min-height: 44px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue-500);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+

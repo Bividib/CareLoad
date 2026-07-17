@@ -1,0 +1,26 @@
+# dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+
+# testing
+/coverage
+/playwright-report
+/test-results
+
+# local environment and data
+.env
+.env.local
+.env.*.local
+/prisma/*.db
+/prisma/*.db-journal
+
+# generated and editor files
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+
