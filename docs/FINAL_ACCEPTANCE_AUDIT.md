@@ -21,7 +21,7 @@ server calls, and Playwright at both required mobile widths.
 | 4 | Life Map proposal does not replace active plan before acceptance | PASS | proposal service | persistence E2E |
 | 4 | Initial accepted plan survives refresh | PASS | active version/completion flag | onboarding E2E |
 | 5 | Typed, editable, Same, Skip and record-only flows | PASS | Daily Signal routes/client | unit/E2E |
-| 5 | Voice recording and typed denial fallback | NOT TESTED | MediaRecorder and transcription route exist | no physical microphone |
+| 5 | Voice recording and typed denial fallback | NOT TESTED | MediaRecorder, validation, transcription and editable transcript exist | automated denied/unsupported/empty/failure/success tests pass; no physical microphone |
 | 5 | Structured output preserves phrases/uncertainty and rejects diagnosis fields | PASS | strict schema/rules | safety tests and live result |
 | 5 | At most two approved personalised questions | PASS | catalogue filter and max two | tests; live result returned two |
 | 5 | Confirmation and deterministic urgent rule | PASS | persisted statuses and fixed rule | unit/E2E |
@@ -46,8 +46,8 @@ server calls, and Playwright at both required mobile widths.
 | All | Malformed API input and unsafe files are rejected | PASS | Zod, allowlist, limits, UUID names, path root checks | tests/source audit |
 | All | Audit events and foreign keys cover important transitions | PASS | event writes and relations | reset/database inspection |
 | All | Production cannot call destructive demo reset | PASS | NODE_ENV guard | source audit |
-| All | Invalid/missing key, timeout/output and transcription failures remain recoverable | PASS | caught failures plus fixture/typed fallback | controlled 403 then fixture E2E |
-| All | Dependency security audit | FAIL | five upstream advisories | `npm audit` |
+| All | Invalid/missing key, timeout/output and transcription failures remain recoverable | PASS | bounded live timeout plus explicit fixture/typed fallback | controlled failure, component tests and fixture E2E |
+| All | Dependency security audit | PASS | safe Prisma patch removed all high findings; two moderate risks documented | `docs/DEPENDENCY_AUDIT.md` |
 | All | Two extra manual browser rehearsals beyond automated viewport runs | NOT TESTED | automation covers both widths | not separately recorded |
 
 ## Findings
@@ -56,8 +56,17 @@ server calls, and Playwright at both required mobile widths.
 - P1 fixed: inaccessible `gpt-5.6` default blocked live AI; defaults now use
   project-accessible `gpt-5`. Live PDF and Daily Signal output pass.
 - P1 open: none.
-- P2 open: five dependency advisories, a non-fatal Next.js trace warning, and
-  live-model latency unsuitable for a short demo.
+- P2 fixed: high-severity Prisma CLI advisories; bounded live-AI timeout and
+  explicit effective-mode display; microphone empty-capture and whole-button
+  activation defects.
+- P2 accepted limitations: two moderate Next-bundled PostCSS advisories and a
+  non-fatal Prisma/Turbopack NFT trace warning. See
+  `docs/RELEASE_CLOSURE_STATUS.md`.
 - P3: none implemented.
 
 Final status: **READY WITH KNOWN LIMITATIONS**.
+
+Release-closure superseding evidence: final commands, clean-clone
+reproducibility, dependency triage, timeout hardening and microphone automated
+coverage are recorded in `docs/RELEASE_CLOSURE_STATUS.md`. Physical microphone
+interaction and three presenter rehearsals remain manual.

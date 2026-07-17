@@ -110,7 +110,7 @@ Run all of these before handing off or committing:
 
 ```bash
 npm run lint
-npm run type-check
+npm run typecheck
 npm test
 npm run build
 ```

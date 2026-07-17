@@ -13,6 +13,9 @@ npm run dev
 
 Use `DATABASE_URL=file:./dev.db` and `DEMO_RESPONSE_DELAY_MS=10000`.
 For the reliable fixture demo set `DEMO_AI_FALLBACK=true`; no key is required.
+Set `DEMO_AI_TIMEOUT_MS=25000` to bound each live AI request without silently
+switching modes. Failed live requests retain the document or Daily Signal text
+and offer Retry and an explicit demo result.
 For live mode set `OPENAI_API_KEY` server-side, `OPENAI_TEXT_MODEL=gpt-5`,
 `OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe`, and
 `DEMO_AI_FALLBACK=false`, then turn fixture mode off at `/demo`. Never use a
@@ -58,10 +61,13 @@ voice capture; if denied or unavailable, select Type.
 - Final screen: `UPDATED_PLAN_ACCEPTED`.
 - Stuck reply: refresh Messages; after its due time click Process response jobs.
 - Live AI slow/unavailable: turn fixture mode on and repeat; stored UI
-  transitions are the same.
+  transitions are the same. `/demo` states the effective processing mode.
 - Microphone/transcription failure: select Type; the recording is not stored.
 - Development database reset: rerun `npm run db:reset`, then restart at a
   checkpoint.
+
+Use repository-root `.env` as shown above. `.env.local` is ignored but is not
+part of the documented setup convention.
 
 ## Submission rehearsal
 

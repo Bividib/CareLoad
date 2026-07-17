@@ -70,13 +70,13 @@ export function FrictionChip({ children, selected = false }: { children: ReactNo
   return <span className={`friction-chip ${selected ? "selected" : ""}`}>{children}</span>;
 }
 
-export function PrimaryButton({ children, href, type = "button" }: { children: ReactNode; href?: string; type?: "button" | "submit" }) {
+export function PrimaryButton({ children, href, type = "button", onClick }: { children: ReactNode; href?: string; type?: "button" | "submit"; onClick?: () => void }) {
   const content = <>{children}<ChevronRight /></>;
-  return href ? <Link className="primary-button" href={href}>{content}</Link> : <button className="primary-button" type={type}>{content}</button>;
+  return href ? <Link className="primary-button" href={href}>{content}</Link> : <button className="primary-button" type={type} onClick={onClick}>{content}</button>;
 }
 
-export function SecondaryButton({ children, href }: { children: ReactNode; href?: string }) {
-  return href ? <Link className="secondary-button" href={href}>{children}</Link> : <button className="secondary-button">{children}</button>;
+export function SecondaryButton({ children, href, onClick }: { children: ReactNode; href?: string; onClick?: () => void }) {
+  return href ? <Link className="secondary-button" href={href}>{children}</Link> : <button className="secondary-button" onClick={onClick}>{children}</button>;
 }
 
 export function EmptyState({ title, children }: { title: string; children: ReactNode }) {

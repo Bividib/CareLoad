@@ -26,16 +26,27 @@ Milestones 1–8 were re-verified during final acceptance.
   is recommended for a time-bounded presentation.
 - Browser microphone capture is implemented with a typed fallback, but physical
   microphone hardware was not available during the final automated audit.
-- `npm audit` reports five upstream dependency advisories (two moderate, three
-  high); none is exercised by the local synthetic demo path.
+  Automated coverage includes permission denial, unsupported recording,
+  validation, transcription failure/success and transcript editing.
+- `npm audit` reports two moderate Next-bundled PostCSS findings after the safe
+  Prisma 6.19.3 patch removed all three high CLI findings. The remaining path is
+  not exercised by CareLoad’s authored-CSS-only local demo.
+- Clean production builds retain a non-fatal Turbopack NFT trace warning around
+  Prisma’s generated CommonJS client; every route and required runtime asset is
+  emitted.
 
 ## Final demo readiness
 
 **READY WITH KNOWN LIMITATIONS**
 
-Evidence: clean reset/migrations/seed, lint, strict type-check, 40/40 Vitest
+Evidence: clean reset/migrations/seed, lint, strict type-check, 49/49 Vitest
 tests, production build, and 10/10 Playwright tests across 390 × 844 and
 430 × 932 passed. Live server-side OpenAI structured extraction passed after
 correcting the default model to one available to the supplied project. The
 complete persisted workflow, delayed-response refresh path, fixture fallback,
 and accepted-plan Today state passed in Playwright.
+
+Live requests are bounded by `DEMO_AI_TIMEOUT_MS` (25 seconds by default) and
+do not silently switch to fixture output. `/demo` states the effective mode.
+See `docs/RELEASE_CLOSURE_STATUS.md` for closure evidence and remaining manual
+or event-day tasks.

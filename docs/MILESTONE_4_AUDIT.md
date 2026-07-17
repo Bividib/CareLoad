@@ -23,3 +23,6 @@
 | Required quality gates pass | PASS | Strict TypeScript, lint, Vitest, Playwright, production build | Final command log recorded in milestone handoff |
 
 Milestone 5 features are intentionally out of scope.
+
+> Superseded verification: live OpenAI extraction was subsequently tested
+> during final acceptance. See `FINAL_ACCEPTANCE_AUDIT.md`.

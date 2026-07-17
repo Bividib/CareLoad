@@ -1,26 +1,26 @@
 # CareLoad UI reference map
 
-All files are 945 × 1680 mobile mock-ups. The device chrome is illustrative;
-the application reproduces the content system inside a centred 390–430 px shell.
+All files are 945 × 1680 mobile mock-ups. Device chrome is illustrative; the
+application reproduces the content system inside a centred 390–430 px shell.
 
-| Filename | Screen / route | Major components and reusable patterns | Ambiguity / implementation note |
+| Filename | Screen / route | Major components and reusable patterns | Final implementation note |
 |---|---|---|---|
-| `...04_38_15 PM (1).png` | Initial Today `/patient/today` | Logo header, bell, greeting, update pill, care-moment card, Daily Signal, protected anchors, five-item nav | Mock-up adds unseeded breathing/hydration tasks; implementation shows verified seeded tasks only. |
-| `...04_38_15 PM (2).png` | Welcome `/onboarding/welcome` | Logo, benefit rows, privacy card, acknowledgement, primary/secondary buttons | Real privacy/security claims are inappropriate for a prototype; replaced by explicit synthetic-data boundary. |
-| `...04_38_16 PM (3).png` | Build `/onboarding/build` | Progress dots, three option cards, supportive banner, primary button | “Connect health record” remains visibly simulated. |
-| `...04_38_16 PM (4).png` | Review `/onboarding/review` | Four-step progress, task status rows, factual questions, primary button | Seeded fixture candidates are used; confirmation is factual, not clinical verification. |
-| `...04_38_16 PM (5).png` | Updated Today `/patient/today` after accepted update | Success banner, changed-plan summary, revised care moments | Later accepted-update state is represented only when persisted. |
-| `...04_38_16 PM (6).png` | Daily Signal `/patient/daily-signal` | Optional badge, microphone/transcript card, two follow-ups, quick replies, CTA | Static fixture only in Milestones 1–3; no transcription or diagnosis. |
-| `...04_38_17 PM (7).png` | Daily Signal review `/patient/daily-signal/review` | Structured observations, rationale, confirm/edit rows, send/monitor actions | “Send to clinician” is retained as a non-functional later-milestone affordance and labelled simulated. |
-| `...04_38_17 PM (8).png` | Messages `/patient/messages` | Conversation, patient bubble, simulated response, meaning card, AI disclaimer | “Secure messages” and real-clinician implications removed; content is conspicuously simulated. |
-| `...04_38_18 PM (9).png` | Care update `/patient/updates/demo-update` | Update alert, impact metric cards, solvable list, clarification warning, CTAs | Metrics are deterministic fixtures until update simulation milestone. |
-| `...04_38_18 PM (10).png` | Life Map `/patient/life-map` | Anchor list, priorities, category chips, friction tags, floating save, nav | Work starts 08:30 per authoritative request, not 08:00 shown in the image. |
-| `...04_38_30 PM (1).png` | Care Plan `/patient/care-plan` | status banner, segmented control, weekly rows, task list/tags, anchors | Status says “synthetic verified tasks,” not a real care-team verification claim. |
-| `...04_38_30 PM (2).png` | Update preview `/patient/updates/demo-update/preview` | change summary, revised care moments, benefits, accept/clarify CTAs | Later update fixtures stay preview-only; active plan cannot change without acceptance. |
+| `...04_38_15 PM (1).png` | Initial Today `/patient/today` | Header, greeting, update pill, care moments, Daily Signal, anchors, nav | Shows only synthetic verified seeded tasks; unverified mock-up tasks are excluded. |
+| `...04_38_15 PM (2).png` | Welcome `/onboarding/welcome` | Benefits, prototype boundary, acknowledgements, actions | Uses an explicit synthetic-data boundary rather than production privacy claims. |
+| `...04_38_16 PM (3).png` | Build `/onboarding/build` | Progress, source options, banner, action | “Connect health record” is visibly simulated. |
+| `...04_38_16 PM (4).png` | Review `/onboarding/review` | Progress, task status, factual questions, action | Confirmation is factual; unmatched tasks remain visible and unscheduled. |
+| `...04_38_16 PM (5).png` | Updated Today after acceptance | Success, change summary, revised moments | Rendered only from the persisted accepted version. |
+| `...04_38_16 PM (6).png` | Daily Signal `/patient/daily-signal` | Optional entry, microphone/editable transcript, follow-ups, quick replies | Typed and MediaRecorder paths work. Fixture or live processing is explicit; neither path diagnoses. |
+| `...04_38_17 PM (7).png` | Daily Signal review | Observations, rationale, confirm/edit, send/monitor | Send stores the patient-confirmed update and schedules a conspicuously simulated response. There is no real clinician connection. |
+| `...04_38_17 PM (8).png` | Messages | Conversation, patient bubble, simulated response, meaning card | Real-clinician and “secure message” implications are removed; responses are fictional and labelled. |
+| `...04_38_18 PM (9).png` | Care update | Alert, calculated impact metrics, solved and unresolved lists | The deterministic Stress Test calculates metrics from the single synthetic update, including 28 added actions. |
+| `...04_38_18 PM (10).png` | Life Map | Anchors, priorities, frictions, save, nav | Work starts 08:30 per the authoritative seed, not the image’s 08:00. |
+| `...04_38_30 PM (1).png` | Care Plan | Status, weekly rows, task tags, anchors | Says synthetic verified tasks, not real care-team verification. |
+| `...04_38_30 PM (2).png` | Update preview | Change summary, revised moments, benefits, accept/clarify | Preview and transactional acceptance work; the active plan changes only after patient acceptance. |
 
 ## Shared visual system
 
-White/pale-blue background, navy headings, blue primary actions, teal supportive
-states, pastel circular icon wells, 24 px cards, subtle shadows, generous 16–24
-px spacing, rounded pills, and Lucide line icons. Bottom navigation order is
-always Today, Care Plan, Add to My Life, Messages, Help.
+White/pale-blue background, navy headings, blue primary actions, teal
+supportive states, pastel icon wells, 24 px cards, subtle shadows, generous
+spacing, rounded pills, and Lucide line icons. Navigation order is Today, Care
+Plan, Add to My Life, Messages, Help.

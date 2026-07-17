@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("completes the patient Daily Signal, delayed response, Stress Test, and acceptance path", async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   await page.request.post("/api/demo/checkpoint", { data: { checkpoint: "INITIAL_PLAN_READY" } });
   await page.goto("/patient/today");
   await page.getByRole("link", { name: "Type" }).click();
@@ -23,8 +23,14 @@ test("completes the patient Daily Signal, delayed response, Stress Test, and acc
   await page.goto("/patient/updates/demo-update");
   await expect(page.getByText("+28")).toBeVisible();
   await page.getByRole("link", { name: "Preview updated plan" }).click();
+  const acceptance = page.waitForResponse((response) =>
+    response.url().includes("/api/care-plan-changes/") &&
+    response.url().endsWith("/accept") &&
+    response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Accept updated plan" }).click();
-  await expect(page).toHaveURL(/patient\/today/);
+  expect((await acceptance).status()).toBe(200);
+  await expect(page).toHaveURL(/patient\/today/, { timeout: 20_000 });
   await expect(page.getByText("Plan updated today")).toBeVisible();
 });
 

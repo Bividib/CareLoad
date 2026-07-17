@@ -14,3 +14,7 @@
 | Deterministic urgent demonstration rule | PASS | Exact three-answer rule and predefined UI | Positive and negative tests |
 | Refresh preserves progress | PASS | Prisma-backed draft, extraction, questions and answers | Reset and production build |
 | No diagnosis or medication recommendation output | PASS | Strict schema and system rules | Extra-field rejection tests |
+
+> Superseded verification: live OpenAI Daily Signal extraction was subsequently
+> tested during final acceptance. See `FINAL_ACCEPTANCE_AUDIT.md`. Physical
+> microphone interaction remains a separate manual event-laptop check.

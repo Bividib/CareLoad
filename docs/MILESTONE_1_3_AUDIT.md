@@ -2,7 +2,7 @@
 
 | Criterion | Status | Implementation evidence | Test evidence |
 |---|---|---|---|
-| Project installs, starts, compiles, and builds | PASS | Next.js App Router and required scripts in `package.json` | `npm run type-check`, `npm run build`, runtime Playwright server |
+| Project installs, starts, compiles, and builds | PASS | Next.js App Router and required scripts in `package.json` | `npm run typecheck`, `npm run build`, runtime Playwright server |
 | Prisma migrations, SQLite, Eleanor seed, repeatable reset | PASS | `prisma/schema.prisma`, migration, `seed-data.ts` | `npm run db:reset` repeated successfully |
 | Required models, enums, 12 verified tasks, Life Map and support | PASS | Prisma schema and deterministic seed | Reset/seed plus rendered data-backed pages |
 | Required route shells load | PASS | App Router route tree | Playwright checks onboarding and five patient routes |

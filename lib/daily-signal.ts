@@ -3,6 +3,7 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { PrismaClient } from "@/generated/prisma6";
 import { dailySignalExtractionSchema, type DailySignalExtraction } from "@/domain/daily-signal/schema";
 import { fixtureForText } from "@/domain/daily-signal/fixtures";
+import { aiRequestTimeoutMs } from "@/lib/env";
 
 export async function buildDailySignalContext(db: PrismaClient, patientId: string) {
   const [patient, signals, audits] = await Promise.all([
@@ -27,7 +28,11 @@ const rules = `Do not diagnose. Do not attribute an observation to a medicine. D
 
 export async function extractDailySignal(text: string, context: Awaited<ReturnType<typeof buildDailySignalContext>>, forceFixture = false): Promise<DailySignalExtraction> {
   if (forceFixture || process.env.DEMO_AI_FALLBACK === "true" || !process.env.OPENAI_API_KEY) return dailySignalExtractionSchema.parse(fixtureForText(text));
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    maxRetries: 0,
+    timeout: aiRequestTimeoutMs(),
+  });
   const response = await client.responses.parse({
     model: process.env.OPENAI_TEXT_MODEL ?? "gpt-5", store: false,
     input: [{ role: "system", content: rules }, { role: "user", content: JSON.stringify({ text, context }) }],

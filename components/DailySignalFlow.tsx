@@ -41,13 +41,17 @@ export function DailySignalEntry({ prompt }: { prompt: string }) {
       next.onstop = async () => {
         stream.getTracks().forEach((track) => track.stop());
         if (timer.current) clearInterval(timer.current);
-        if (!chunks.current.length) return;
+        setRecording(false);
+        if (!chunks.current.length) {
+          setError("No audio was captured. You can retry or type your check-in instead.");
+          return;
+        }
         setBusy(true);
         const form = new FormData();
         form.append("audio", new File(chunks.current, "daily-signal.webm", { type: chunks.current[0].type || "audio/webm" }));
         const response = await fetch("/api/audio/transcribe", { method: "POST", body: form });
         const body = await response.json() as { transcript?: string; error?: string };
-        setBusy(false); setRecording(false);
+        setBusy(false);
         if (!response.ok) return setError(body.error ?? "Transcription failed.");
         setText(body.transcript ?? "");
       };
@@ -67,16 +71,16 @@ export function DailySignalEntry({ prompt }: { prompt: string }) {
     <StatusBanner title="A short check-in">{prompt}</StatusBanner>
     {mode === "CHOICE" ? <RoundedCard className="signal-choice">
       <SectionTitle>How would you like to check in?</SectionTitle>
-      <PrimaryButton><span onClick={() => setMode("VOICE")}><Mic /> Speak</span></PrimaryButton>
-      <SecondaryButton><span onClick={() => setMode("TYPE")}><Keyboard /> Type</span></SecondaryButton>
-      <SecondaryButton><span onClick={() => void quick("same")}>I feel about the same</span></SecondaryButton>
+      <PrimaryButton onClick={() => setMode("VOICE")}><Mic /> Speak</PrimaryButton>
+      <SecondaryButton onClick={() => setMode("TYPE")}><Keyboard /> Type</SecondaryButton>
+      <SecondaryButton onClick={() => void quick("same")}>I feel about the same</SecondaryButton>
       <button className="text-button full-button" onClick={() => void quick("dismiss")}>Skip for today</button>
     </RoundedCard> : <RoundedCard className="signal-input">
       {mode === "VOICE" && <><button className={`microphone ${recording ? "recording" : ""}`} aria-label={recording ? "Stop recording" : "Start recording"} onClick={() => recording ? recorder.current?.stop() : void startRecording()}>{recording ? <Square /> : <Mic />}</button><p aria-live="polite">{recording ? `Recording ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : "Tap to record"}</p>{recording && <button className="text-button" onClick={() => { chunks.current = []; recorder.current?.stop(); setRecording(false); }}><X /> Cancel recording</button>}</>}
       <label className="field">Your check-in<textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Tell CareLoad how today feels…" /></label>
       {error && <div className="error-message" role="alert">{error}</div>}
-      <PrimaryButton><span onClick={() => void analyse()}>{busy ? "Analysing…" : "Review what CareLoad understood"}</span></PrimaryButton>
-      {error && <SecondaryButton><span onClick={() => void analyse(true)}>Use demo extraction</span></SecondaryButton>}
+      <PrimaryButton onClick={() => void analyse()}>{busy ? "Analysing…" : "Review what CareLoad understood"}</PrimaryButton>
+      {error && <SecondaryButton onClick={() => void analyse(true)}>Use demo extraction</SecondaryButton>}
       <button className="text-button full-button" onClick={() => setMode("CHOICE")}>Back</button>
     </RoundedCard>}
   </MobileShell>;
@@ -106,6 +110,6 @@ export function DailySignalReview({ data }: { data: ReviewData }) {
     {data.questions.length > 0 && <><SectionTitle>Up to two quick questions</SectionTitle>{data.questions.map((question) => <RoundedCard key={question.id}><label className="field">{question.text}<select value={answers[question.id] ?? ""} onChange={(event) => setAnswers((old) => ({ ...old, [question.id]: event.target.value }))}><option value="">Choose an answer</option>{(question.options ?? ["Yes", "No", "Not sure"]).map((option) => <option key={option}>{option}</option>)}</select></label></RoundedCard>)}</>}
     {data.extraction.shareSuggested && <StatusBanner tone="blue" title="Why sharing is suggested">{data.extraction.shareReason}</StatusBanner>}
     <p className="notice">This does not diagnose a condition.</p>
-    {!confirmed ? <><PrimaryButton><span onClick={() => void finish("CONFIRM")}>{busy ? "Saving…" : "Yes, that is right"}</span></PrimaryButton><SecondaryButton href="/patient/daily-signal">Edit</SecondaryButton><SecondaryButton><span onClick={() => void finish("RECORD_ONLY")}>Keep monitoring</span></SecondaryButton></> : <><StatusBanner title="Confirmed">Only these patient-confirmed observations can be included in an update.</StatusBanner><SendUpdateButton signalId={data.id} /><SecondaryButton><span onClick={() => router.push("/patient/today")}>Keep monitoring</span></SecondaryButton></>}
+    {!confirmed ? <><PrimaryButton onClick={() => void finish("CONFIRM")}>{busy ? "Saving…" : "Yes, that is right"}</PrimaryButton><SecondaryButton href="/patient/daily-signal">Edit</SecondaryButton><SecondaryButton onClick={() => void finish("RECORD_ONLY")}>Keep monitoring</SecondaryButton></> : <><StatusBanner title="Confirmed">Only these patient-confirmed observations can be included in an update.</StatusBanner><SendUpdateButton signalId={data.id} /><SecondaryButton onClick={() => router.push("/patient/today")}>Keep monitoring</SecondaryButton></>}
   </MobileShell>;
 }

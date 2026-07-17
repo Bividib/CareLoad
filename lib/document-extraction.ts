@@ -6,6 +6,7 @@ import cardiology from "@/fixtures/document-extractions/cardiology-discharge-sum
 import diabetes from "@/fixtures/document-extractions/diabetes-medication-list.json";
 import gp from "@/fixtures/document-extractions/gp-care-notes.json";
 import { documentExtractionSchema, type DocumentExtraction } from "@/domain/onboarding/extraction-schema";
+import { aiRequestTimeoutMs } from "@/lib/env";
 
 const fixtures: Record<string, unknown> = {
   "cardiology-discharge-summary.pdf": cardiology,
@@ -28,7 +29,11 @@ This is candidate information only and must never create clinical constraints.`;
 export async function liveExtraction(storagePath: string, mimeType: string): Promise<DocumentExtraction> {
   if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured.");
   const bytes = await fs.readFile(storagePath);
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    maxRetries: 0,
+    timeout: aiRequestTimeoutMs(),
+  });
   const content = mimeType === "application/pdf"
     ? [{ type: "input_file" as const, filename: path.basename(storagePath), file_data: `data:application/pdf;base64,${bytes.toString("base64")}` }, { type: "input_text" as const, text: systemRules }]
     : [{ type: "input_text" as const, text: `${systemRules}\n\nDOCUMENT:\n${bytes.toString("utf8")}` }];

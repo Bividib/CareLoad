@@ -20,7 +20,23 @@ Requires Node.js 20.9+ and npm.
 
 ```bash
 npm install
+```
+
+On Windows PowerShell:
+
+```powershell
 Copy-Item .env.example .env -ErrorAction SilentlyContinue
+```
+
+On macOS/Linux:
+
+```bash
+cp -n .env.example .env
+```
+
+Then:
+
+```bash
 npm run db:reset
 npm run dev
 ```
@@ -35,10 +51,13 @@ OPENAI_API_KEY=                 # optional; server-side only
 OPENAI_TEXT_MODEL=gpt-5
 OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
 DEMO_AI_FALLBACK=true          # complete no-key path
+DEMO_AI_TIMEOUT_MS=25000       # bounded live AI wait; input is preserved
 DEMO_RESPONSE_DELAY_MS=10000
 ```
 
-Never expose the API key through `NEXT_PUBLIC_*`.
+CareLoad uses repository-root `.env`; `.env.local` is also ignored but is not
+required by the documented setup. Never expose the API key through
+`NEXT_PUBLIC_*`.
 
 ## Database and verification
 
@@ -59,6 +78,11 @@ Reset is destructive only to the local synthetic demo database and is idempotent
 `/demo` can reset state, seed eight documented checkpoints, trigger the synthetic update, process due response jobs, toggle persisted fixture mode, and show the audit timeline. Fixture mode preserves the same stored transitions and UI as live mode and needs no OpenAI key. The patient demo starts at `/`.
 
 See [`docs/FINAL_DEMO_RUNBOOK.md`](docs/FINAL_DEMO_RUNBOOK.md) for the exact presentation sequence and recovery shortcuts, [`docs/FINAL_ACCEPTANCE_AUDIT.md`](docs/FINAL_ACCEPTANCE_AUDIT.md) for verified evidence, and [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) for milestone status.
+
+Release-closure evidence and remaining personal checks are in
+[`docs/RELEASE_CLOSURE_STATUS.md`](docs/RELEASE_CLOSURE_STATUS.md),
+[`docs/MANUAL_MICROPHONE_TEST.md`](docs/MANUAL_MICROPHONE_TEST.md), and
+[`docs/FINAL_REHEARSAL_LOG.md`](docs/FINAL_REHEARSAL_LOG.md).
 
 ## Safety limitations
 
