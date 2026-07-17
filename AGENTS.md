@@ -115,6 +115,16 @@ npm test
 npm run build
 ```
 
+## Definition of done
+
+- The requested milestone is implemented, integrated, persisted where required,
+  and manually exercised at both 390 px and 430 px widths.
+- Safety invariants and state transitions have direct automated coverage.
+- Database reset and seed are idempotent, all scheduled and unplaced work is
+  visible, and no active plan changes without patient acceptance.
+- Lint, strict type-checking, unit tests, build, and stable end-to-end smoke
+  tests pass before a milestone is marked `DONE`.
+
 For a foundation or runtime change, also prove the application starts:
 
 ```bash
@@ -145,4 +155,3 @@ verification before committing.
   daily logging.
 - Formal optimisation solvers, provider analytics, multilingual voice, and
   other future-direction items listed in the implementation plan.
-

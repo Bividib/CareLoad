@@ -18,9 +18,9 @@
 /prisma/*.db-journal
 
 # generated and editor files
+/generated
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
 .idea
 .vscode
-

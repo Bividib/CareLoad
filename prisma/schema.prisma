@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma6"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum TaskCriticality {
+  FIXED
+  IMPORTANT
+  ROUTINE
+}
+
+enum TaskTimingType {
+  FIXED
+  WINDOW
+  FLEXIBLE
+  APPOINTMENT
+}
+
+enum LifeMapCategory {
+  WORK
+  FAMILY
+  ROUTINE
+  ACTIVITY
+  MEAL
+  SLEEP
+  APPOINTMENT
+}
+
+enum FrictionCategory {
+  TIME
+  LOCATION
+  PHYSICAL
+  COGNITIVE
+  EMOTIONAL
+  SOCIAL
+  FINANCIAL
+}
+
+enum PlanVersionStatus {
+  PROPOSED
+  ACTIVE
+  SUPERSEDED
+}
+
+enum ScheduledItemStatus {
+  SCHEDULED
+  DELEGATED
+  NEEDS_CLARIFICATION
+}
+
+model Patient {
+  id            String              @id
+  name          String
+  synthetic     Boolean             @default(true)
+  conditions    Condition[]
+  tasks         VerifiedCareTask[]
+  anchors       LifeAnchor[]
+  preferences   PatientPreference[]
+  frictions     FrictionFactor[]
+  supportPeople SupportPerson[]
+  planVersions  CarePlanVersion[]
+  auditEvents   AuditEvent[]
+  createdAt     DateTime            @default(now())
+}
+
+model Condition {
+  id        String  @id
+  name      String
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model VerifiedCareTask {
+  id                String              @id
+  patientId         String
+  patient           Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title             String
+  source            String
+  supportingText    String
+  ownerService      String
+  criticality       TaskCriticality
+  timingType        TaskTimingType
+  windowStart       String
+  windowEnd         String
+  fixedTime         String?
+  frequency         String
+  weekdays          String?
+  startDate         String?
+  endDate           String?
+  durationMinutes   Int
+  mayMove           Boolean
+  mayDelegate       Boolean
+  requiredLocation  String?
+  requiredEquipment String?
+  bundleGroup       String?
+  verified          Boolean             @default(true)
+  scheduledItems    ScheduledPlanItem[]
+}
+
+model LifeAnchor {
+  id        String          @id
+  patientId String
+  patient   Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  title     String
+  category  LifeMapCategory
+  startTime String
+  endTime   String
+  weekdays  String
+  protected Boolean         @default(true)
+  location  String?
+}
+
+model PatientPreference {
+  id        String  @id
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  key       String
+  label     String
+  enabled   Boolean @default(true)
+}
+
+model FrictionFactor {
+  id          String           @id
+  patientId   String
+  patient     Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  category    FrictionCategory
+  description String
+  enabled     Boolean          @default(true)
+}
+
+model SupportPerson {
+  id                     String  @id
+  patientId              String
+  patient                Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  name                   String
+  relationship           String
+  mayCollectPrescription Boolean
+  mayProvideTransport    Boolean
+  fullHealthAccess       Boolean @default(false)
+  availability           String
+}
+
+model CarePlanVersion {
+  id          String              @id
+  patientId   String
+  patient     Patient             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  version     Int
+  status      PlanVersionStatus
+  rangeStart  String
+  rangeEnd    String
+  metricsJson String
+  createdAt   DateTime            @default(now())
+  acceptedAt  DateTime?
+  items       ScheduledPlanItem[]
+}
+
+model ScheduledPlanItem {
+  id              String              @id
+  planVersionId   String
+  planVersion     CarePlanVersion     @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  taskId          String
+  task            VerifiedCareTask    @relation(fields: [taskId], references: [id])
+  occurrenceDate  String
+  startTime       String?
+  endTime         String?
+  momentId        String?
+  momentTitle     String?
+  status          ScheduledItemStatus
+  explanation     String
+  constraintsJson String
+  delegatedTo     String?
+}
+
+model AuditEvent {
+  id        String   @id
+  patientId String
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  type      String
+  summary   String
+  createdAt DateTime @default(now())
+}
