@@ -8,8 +8,12 @@ import type { DailySignalExtraction } from "@/domain/daily-signal/schema";
 import type { QuestionDefinition } from "@/domain/daily-signal/questions";
 import { MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, StatusBanner } from "@/components/ui/CareLoadUI";
 import { SendUpdateButton } from "@/components/MessagingClient";
+import { DailySignalEvidencePanel } from "@/components/DailySignalEvidencePanel";
+import type { DailySignalEvidenceGraph } from "@/domain/daily-signal/evidence-graph";
+import type { DailySignalDisposition } from "@/domain/daily-signal/disposition";
+import type { DailySignalAnalysisMode } from "@/lib/daily-signal";
 
-type ReviewData = { id: string; rawText: string; extraction: DailySignalExtraction; questions: QuestionDefinition[]; answers: Record<string, string>; urgent: boolean; trendSummary: string | null; status: string; shareSuggested: boolean; shareReason: string | null };
+type ReviewData = { id: string; rawText: string; extraction: DailySignalExtraction; questions: QuestionDefinition[]; answers: Record<string, string>; urgent: boolean; trendSummary: string | null; status: string; shareSuggested: boolean; shareReason: string | null; fixtureAnswersApplied: boolean; analysisMode: DailySignalAnalysisMode; evidenceGraph: DailySignalEvidenceGraph | null };
 
 export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string; initialText?: string }) {
   const router = useRouter();
@@ -27,10 +31,12 @@ export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string;
   async function analyse(forceFixture = false) {
     setBusy(true); setError("");
     const response = await fetch("/api/daily-signals/extract", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, inputMode: mode === "VOICE" ? "VOICE" : "TYPED", forceFixture }) });
-    const body = await response.json() as { id?: string; error?: string };
+    const body = await response.json() as { id?: string; error?: string; analysisMode?: "FIXTURE" | "OPENAI"; fixtureAnswersApplied?: boolean };
     setBusy(false);
     if (!response.ok || !body.id) return setError(body.error ?? "Analysis failed.");
-    router.push(`/patient/daily-signal/review?id=${body.id}`);
+    const query = new URLSearchParams({ id: body.id, analysisMode: body.analysisMode ?? "FIXTURE" });
+    if (body.fixtureAnswersApplied) query.set("fixtureAnswers", "1");
+    router.push(`/patient/daily-signal/review?${query.toString()}`);
   }
 
   async function startRecording() {
@@ -104,11 +110,12 @@ export function DailySignalReview({ data }: { data: ReviewData }) {
   const router = useRouter();
   const [answers, setAnswers] = useState(data.answers);
   const [phase, setPhase] = useState<"QUESTIONS" | "CONFIRM">(
-    data.questions.length && !data.questions.every((question) => data.answers[question.id]) ? "QUESTIONS" : "CONFIRM",
+    data.questions.length && (data.fixtureAnswersApplied || !data.questions.every((question) => data.answers[question.id])) ? "QUESTIONS" : "CONFIRM",
   );
-  const initialOutcome = data.status === "CONFIRMED" ? (data.shareSuggested ? "SHARE_SUGGESTED" : "RECORD_ONLY") : null;
+  const initialOutcome = ["CONFIRMED", "RECORDED_ONLY", "SENT"].includes(data.status) ? (data.shareSuggested ? "SHARE_SUGGESTED" : "RECORD_ONLY") : null;
   const [outcome, setOutcome] = useState<"SHARE_SUGGESTED" | "RECORD_ONLY" | null>(initialOutcome);
   const [reason, setReason] = useState(data.shareReason);
+  const [evidenceGraph, setEvidenceGraph] = useState(data.evidenceGraph);
   const [urgent, setUrgent] = useState(data.urgent);
   const [busy, setBusy] = useState(false);
   async function saveAnswers() {
@@ -120,9 +127,10 @@ export function DailySignalReview({ data }: { data: ReviewData }) {
     try {
       await saveAnswers();
       const response = await fetch(`/api/daily-signals/${data.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "CONFIRM", observations: data.extraction.observations }) });
-      const body = await response.json() as { disposition?: { outcome: "SHARE_SUGGESTED" | "RECORD_ONLY" | "URGENT_DEMO"; reason: string } };
-      if (!response.ok || !body.disposition) throw new Error("Confirmation failed.");
+      const body = await response.json() as { disposition?: DailySignalDisposition; evidenceGraph?: DailySignalEvidenceGraph };
+      if (!response.ok || !body.disposition || !body.evidenceGraph) throw new Error("Confirmation failed.");
       setReason(body.disposition.reason);
+      setEvidenceGraph(body.evidenceGraph);
       if (body.disposition.outcome === "URGENT_DEMO") setUrgent(true);
       else setOutcome(body.disposition.outcome);
     } finally {
@@ -136,8 +144,8 @@ export function DailySignalReview({ data }: { data: ReviewData }) {
     if (response.ok) router.push("/patient/today");
   }
   if (urgent) return <MobileShell active="/patient/today"><PageHeader title="Configured demonstration rule" /><StatusBanner tone="amber" title="Synthetic prototype urgent behaviour">The information you confirmed matched the predefined demonstration rule for severe persistent abdominal pain that spreads to the back. This prototype cannot provide clinical guidance; a routine delayed simulated message is not presented as sufficient.</StatusBanner><p className="notice">This is predefined synthetic prototype behaviour, not deployable clinical guidance.</p></MobileShell>;
-  if (outcome === "SHARE_SUGGESTED") return <MobileShell active="/patient/today"><PageHeader title="Your update is ready" subtitle="You decide whether it is shared." /><StatusBanner tone="amber" title="CareLoad suggests sharing this update">{reason}</StatusBanner><RoundedCard className="disposition-summary"><h2>What will be shared</h2><p>{data.rawText}</p></RoundedCard><SendUpdateButton signalId={data.id} /><SecondaryButton onClick={() => void recordOnly()}>Keep monitoring</SecondaryButton><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link><p className="notice">This sends to the simulated care-team workflow. This does not diagnose a condition.</p></MobileShell>;
-  if (outcome === "RECORD_ONLY") return <MobileShell active="/patient/today"><PageHeader title="Saved to your Daily Signals" subtitle="Your confirmed update has been recorded." /><StatusBanner title="No need to send right now">{reason}</StatusBanner><RoundedCard className="disposition-summary"><h2>Your saved update</h2><p>{data.rawText}</p></RoundedCard><PrimaryButton onClick={() => void recordOnly()}>{busy ? "Saving…" : "Return to Today"}</PrimaryButton><SendUpdateButton signalId={data.id} sendAnyway secondary /><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link><p className="notice">This does not diagnose a condition.</p></MobileShell>;
+  if (outcome === "SHARE_SUGGESTED") return <MobileShell active="/patient/today"><PageHeader title="Your update is ready" subtitle="You decide whether it is shared." /><StatusBanner tone="amber" title="CareLoad suggests sharing this update">{reason}</StatusBanner>{evidenceGraph && <DailySignalEvidencePanel graph={evidenceGraph} analysisMode={data.analysisMode} />}<RoundedCard className="disposition-summary"><h2>What will be shared</h2><p>{data.rawText}</p></RoundedCard><SendUpdateButton signalId={data.id} /><SecondaryButton onClick={() => void recordOnly()}>Keep monitoring</SecondaryButton><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link><p className="notice">This sends to the simulated care-team workflow. This does not diagnose a condition.</p></MobileShell>;
+  if (outcome === "RECORD_ONLY") return <MobileShell active="/patient/today"><PageHeader title="Saved to your Daily Signals" subtitle="Your confirmed update has been recorded." /><StatusBanner title="No need to send right now">{reason}</StatusBanner>{evidenceGraph && <DailySignalEvidencePanel graph={evidenceGraph} analysisMode={data.analysisMode} />}<RoundedCard className="disposition-summary"><h2>Your saved update</h2><p>{data.rawText}</p></RoundedCard><PrimaryButton onClick={() => void recordOnly()}>{busy ? "Saving…" : "Return to Today"}</PrimaryButton><SendUpdateButton signalId={data.id} sendAnyway secondary /><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link><p className="notice">This does not diagnose a condition.</p></MobileShell>;
   return <MobileShell active="/patient/today"><PageHeader title="Review your update" subtitle="Check what CareLoad understood before you choose whether to share it." />
     <RoundedCard className="review-summary-card"><div className="review-card-head"><span className="round-icon mint"><Check /></span><SectionTitle>CareLoad understood</SectionTitle></div><ul className="review-observations">{data.extraction.observations.map((item, index) => <li key={`${item.domain}-${index}`}><strong>{item.domain}:</strong> {item.value}</li>)}</ul></RoundedCard>
     {phase === "QUESTIONS" && data.questions.length > 0 && <><SectionTitle>Up to two quick questions</SectionTitle><RoundedCard className="review-questions">{data.questions.map((question, index) => <label className="field" key={question.id}><span>{index + 1}. {question.text}</span><select value={answers[question.id] ?? ""} onChange={(event) => setAnswers((old) => ({ ...old, [question.id]: event.target.value }))}><option value="">Choose an answer</option>{(question.options ?? ["Yes", "No", "Not sure"]).map((option) => <option key={option}>{option}</option>)}</select></label>)}</RoundedCard><button className="primary-button" disabled={!data.questions.every((question) => answers[question.id])} onClick={() => setPhase("CONFIRM")}>Review your answers</button><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Back</Link></>}

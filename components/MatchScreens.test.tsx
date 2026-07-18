@@ -40,6 +40,7 @@ describe("Match inbox fixtures", () => {
   it("shows exactly Leila and Aisha as the two existing conversations", () => {
     render(<MatchInboxScreen resetGeneration={resetGeneration} />);
     expect(screen.getByText("2 new")).toBeVisible();
+    expect(screen.getByRole("link", { name: "Notifications: 2 unread messages in Match" })).toHaveAttribute("href", "/patient/match");
     expect(screen.getByRole("link", { name: "Open conversation with Leila" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Open conversation with Aisha" })).toBeVisible();
     expect(screen.queryByText("Marcus")).not.toBeInTheDocument();
@@ -67,6 +68,18 @@ describe.each([
 });
 
 describe("local-only peer composer", () => {
+  it("updates and removes the header notification as both fixture conversations are opened", async () => {
+    const leila = render(<PeerConversationScreen profile={matchProfiles.leila} resetGeneration={resetGeneration} />);
+    expect(await screen.findByRole("link", { name: "Notifications: 1 unread message in Match" })).toBeVisible();
+    leila.unmount();
+
+    render(<PeerConversationScreen profile={matchProfiles.aisha} resetGeneration={resetGeneration} />);
+    const notification = await screen.findByRole("link", { name: "Notifications: no unread Match messages" });
+    expect(notification).toBeVisible();
+    expect(within(notification).queryByText("1")).not.toBeInTheDocument();
+    expect(within(notification).queryByText("2")).not.toBeInTheDocument();
+  });
+
   it("trims and appends replies without making a request", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

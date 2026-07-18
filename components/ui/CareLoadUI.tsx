@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  Bell, CalendarDays, Check, ChevronRight, CircleHelp, ClipboardCheck,
+  CalendarDays, Check, ChevronRight, CircleHelp, ClipboardCheck,
   Clock3, Home, MessageCircle, Plus, ShieldCheck, UsersRound,
 } from "lucide-react";
+import { MatchNotificationBell } from "@/components/MatchNotificationBell";
 
 export function CareLoadLogo() {
   return <Link href="/patient/today" className="logo" aria-label="CareLoad home">
@@ -16,15 +17,15 @@ export function CareLoadLogo() {
 }
 
 export function NotificationBell() {
-  return <button className="icon-button bell" aria-label="Notifications"><Bell /><i /></button>;
+  return <MatchNotificationBell />;
 }
 
-export function AppHeader() {
-  return <header className="app-header"><CareLoadLogo /><NotificationBell /></header>;
+export function AppHeader({ showNotifications = true }: { showNotifications?: boolean }) {
+  return <header className="app-header"><CareLoadLogo />{showNotifications && <NotificationBell />}</header>;
 }
 
 export function MobileShell({ children, active, onboarding = false }: { children: ReactNode; active?: string; onboarding?: boolean }) {
-  return <main className={`mobile-shell ${onboarding ? "onboarding-shell" : ""}`}><AppHeader />{children}{!onboarding && <BottomNavigation active={active} />}<footer className="prototype-note">Synthetic hackathon prototype · Not a medical device · Not for real patient care</footer></main>;
+  return <main className={`mobile-shell ${onboarding ? "onboarding-shell" : ""}`}><AppHeader showNotifications={!onboarding} />{children}{!onboarding && <BottomNavigation active={active} />}<footer className="prototype-note">Synthetic hackathon prototype · Not a medical device · Not for real patient care</footer></main>;
 }
 
 const nav = [

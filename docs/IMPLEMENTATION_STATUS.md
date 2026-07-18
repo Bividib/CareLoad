@@ -41,6 +41,21 @@ Milestones 1–8 were re-verified during final acceptance.
   manual verification item; automated MediaRecorder/transcription parity is
   covered with browser mocks.
 
+## Explainable longitudinal patient evidence graph — 18 July 2026
+
+- Daily Signals were already persisted in Prisma/SQLite; this enhancement
+  derives a longitudinal patient evidence graph from the stored report,
+  extraction, displayed questions, editable confirmed answers, recent context,
+  and deterministic disposition.
+- Live mode uses OpenAI structured extraction. Fixture mode uses an immediate
+  validated extraction fixture and preselects the two editable stomach-demo
+  answers.
+- The final workflow outcome remains deterministic. The graph is reconstructed
+  from persisted data after refresh and is an explanation mechanism, not a
+  clinical prediction model.
+- No graph database, Prisma migration, background task, or additional AI
+  explanation call was added.
+
 ## Current limitations
 
 ### Match frontend scaffold — 18 July 2026
