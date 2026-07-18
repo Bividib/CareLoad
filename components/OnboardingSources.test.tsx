@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConnectRecordScreen, displaySourceName, OnboardingStepper, TalkThroughScreen } from "@/components/OnboardingScreens";
+import { BuildScreen, displaySourceName, OnboardingStepper, TalkThroughScreen } from "@/components/OnboardingScreens";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -56,30 +56,12 @@ describe("onboarding source steps", () => {
     );
   });
 
-  it("previews the sample record before explicitly saving it", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          documents: [{ id: "record-1", originalName: "diabetes-medication-list.pdf", status: "UPLOADED" }],
-        }),
-      })
-      .mockResolvedValueOnce({ ok: true });
-    vi.stubGlobal("fetch", fetchMock);
+  it("offers only document upload and talk-through sources", () => {
+    render(<BuildScreen />);
 
-    render(<ConnectRecordScreen selected={[]} />);
-    expect(screen.getByRole("button", { name: "Save document and return" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: /Use sample document/ }));
-
-    expect(await screen.findByText("diabetes-medication-list.pdf")).toBeVisible();
-    expect(push).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Save document and return" }));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/onboarding/build"));
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/onboarding/sources",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(screen.getByRole("button", { name: /Upload documents/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Talk it through/ })).toBeVisible();
+    expect(screen.queryByText(/Connect health record/i)).not.toBeInTheDocument();
   });
 
   it("records, transcribes, and leaves the transcript editable", async () => {

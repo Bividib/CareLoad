@@ -38,16 +38,12 @@ test("persists a Life Map edit and creates a reviewable proposed plan", async ({
   await expect(page.locator('input[value="Lunch break"]')).toBeVisible();
 });
 
-test("uses separate connect-record and talk-through onboarding steps", async ({ page }) => {
+test("offers only upload documents and talk-through onboarding sources", async ({ page }) => {
   await page.request.post("/api/demo/reset", { data: { confirmSyntheticReset: true } });
   await page.goto("/onboarding/build");
-  await page.getByRole("button", { name: /Connect health record/ }).click();
-  await expect(page).toHaveURL(/\/onboarding\/connect$/);
-  await page.getByRole("button", { name: "Use sample document" }).click();
-  await expect(page.getByText("diabetes-medication-list.pdf")).toBeVisible();
-  await page.getByRole("button", { name: "Save document and return" }).click();
-  await expect(page).toHaveURL(/\/onboarding\/build$/);
-  await expect(page.getByRole("button", { name: /Connect health record/ })).toHaveClass(/complete/);
+  await expect(page.getByRole("button", { name: /Upload documents/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Talk it through/ })).toBeVisible();
+  await expect(page.getByText(/Connect health record/i)).toHaveCount(0);
   await page.getByRole("button", { name: /Talk it through/ }).click();
   await expect(page).toHaveURL(/\/onboarding\/talk$/);
   await page.getByLabel("What should your plan fit around?").fill("i work weekday mornings");

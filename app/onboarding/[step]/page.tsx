@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { BuildScreen, ConnectRecordScreen, OnboardingStepper, ProcessingScreen, PreviewScreen, ReviewScreen, TalkThroughScreen, UploadScreen } from "@/components/OnboardingScreens";
+import { BuildScreen, OnboardingStepper, ProcessingScreen, PreviewScreen, ReviewScreen, TalkThroughScreen, UploadScreen } from "@/components/OnboardingScreens";
 import { LifeMapEditor } from "@/components/LifeMapEditor";
 import { MobileShell, PageHeader, RoundedCard, SectionTitle } from "@/components/ui/CareLoadUI";
 import { db } from "@/lib/db";
 import { buildTalkThroughDraft, talkThroughDraftSchema } from "@/lib/life-map-draft";
 
-const steps = ["build","upload","connect","talk","processing","review","life-map","preview"] as const;
+const steps = ["build","upload","talk","processing","review","life-map","preview"] as const;
 export const dynamic = "force-dynamic";
 export function generateStaticParams() { return steps.map((step) => ({ step })); }
 
@@ -13,16 +13,15 @@ export default async function OnboardingStepPage({ params }: { params: Promise<{
   const { step } = await params;
   if (!steps.includes(step as (typeof steps)[number])) notFound();
   const patient = await db.patient.findUniqueOrThrow({ where: { id: "eleanor-reed" } });
-  const selected = JSON.parse(patient.onboardingSources) as string[];
+  const selected = (JSON.parse(patient.onboardingSources) as string[])
+    .filter((source) => source === "UPLOAD" || source === "TALK");
   if (step === "build") {
     const completedSources = [
       ...(selected.includes("UPLOAD") ? ["UPLOAD"] : []),
-      ...(selected.includes("SIMULATED_RECORD") ? ["SIMULATED_RECORD"] : []),
       ...(patient.talkThroughText ? ["TALK"] : []),
     ];
     return <BuildScreen selected={selected} completedSources={completedSources} />;
   }
-  if (step === "connect") return <ConnectRecordScreen selected={selected} />;
   if (step === "talk") return <TalkThroughScreen selected={selected} initialTalk={patient.talkThroughText ?? ""} />;
   const documents = await db.careDocument.findMany({ where: { patientId: patient.id }, orderBy: { createdAt: "asc" } });
   if (step === "upload") return <UploadScreen initialDocuments={documents} selected={selected} />;

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarCheck, Check, ChevronRight, FileText, Heart, LockKeyhole, MessageSquare, Mic, Pill, ShieldCheck, Square, Stethoscope, Upload, Users, X } from "lucide-react";
+import { CalendarCheck, Check, ChevronRight, FileText, Heart, LockKeyhole, MessageSquare, Mic, Pill, ShieldCheck, Square, Upload, Users, X } from "lucide-react";
 import {
   MobileShell,
   PageHeader,
@@ -177,7 +177,7 @@ export function WelcomeScreen({
             </button>
             <h2 id="how-title">What happens next</h2>
             <ol className="how-list">
-              <li><strong>Add your demo information.</strong><span>Choose fictional documents, a simulated health record, or describe the routines that matter to you.</span></li>
+              <li><strong>Add your demo information.</strong><span>Upload fictional documents or describe the routines that matter to you.</span></li>
               <li><strong>Check what CareLoad found.</strong><span>You confirm the care tasks before anything is planned.</span></li>
               <li><strong>Make it fit your life.</strong><span>Add work, family, rest, and other times the plan should protect.</span></li>
               <li><strong>Review before accepting.</strong><span>Your active plan changes only after you approve it.</span></li>
@@ -207,7 +207,6 @@ export function BuildScreen({
   }
   const sourceCards = [
     ["UPLOAD", "Upload documents", "Discharge letters, medication lists, appointment letters", FileText, "/onboarding/upload"],
-    ["SIMULATED_RECORD", "Connect health record", "Simulated for demo", Stethoscope, "/onboarding/connect"],
     ["TALK", "Talk it through", "Speak or type your routine and care needs", Mic, "/onboarding/talk"],
   ] as const;
   const done = new Set([...selected, ...completedSources]);
@@ -254,59 +253,6 @@ async function saveOnboardingSources(sources: string[], talkText?: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ sources, talkText }),
   });
-}
-
-export function ConnectRecordScreen({ selected }: { selected: string[] }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [document, setDocument] = useState<DocumentRow | null>(null);
-  const [error, setError] = useState("");
-  async function attachSample() {
-    setBusy(true);
-    setError("");
-    const response = await fetch("/api/documents/sample", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ names: ["diabetes-medication-list.pdf"] }),
-    });
-    const body = await response.json() as { documents?: DocumentRow[]; error?: string };
-    setBusy(false);
-    if (!response.ok || !body.documents?.[0]) {
-      setError(body.error ?? "The sample record could not be opened. Please try again.");
-      return;
-    }
-    setDocument(body.documents[0]);
-  }
-  async function save() {
-    if (!document) return;
-    setBusy(true);
-    setError("");
-    const response = await saveOnboardingSources(Array.from(new Set([...selected, "SIMULATED_RECORD"])));
-    if (response.ok) router.push("/onboarding/build");
-    else {
-      setBusy(false);
-      setError("The record is attached, but this step could not be saved. Please try again.");
-    }
-  }
-  return <MobileShell onboarding>
-    <OnboardingStepper currentStep={1} />
-    <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
-    <PageHeader title="Connect health record" subtitle="Preview Eleanor’s fictional record before adding it to the demo." />
-    <RoundedCard className="record-connect-card">
-      <span className="option-icon"><Stethoscope /></span>
-      <div><h2>Riverside Health demo record</h2><p>Use the supplied sample to see what a connected record would add. No real health service is contacted.</p></div>
-      {document ? <div className="connected-record-preview" aria-live="polite">
-        <FileText />
-        <span><strong>{document.originalName}</strong><small>Fictional medication list ready to add</small></span>
-        <Check aria-label="Sample document attached" />
-      </div> : <button className="secondary-button" disabled={busy} onClick={() => void attachSample()}>
-        <FileText /> {busy ? "Opening sample…" : "Use sample document"}
-      </button>}
-      <div className="connection-detail"><ShieldCheck /><span><strong>Safe for this demo</strong><small>Uses synthetic information only</small></span></div>
-    </RoundedCard>
-    {error && <div className="error-message" role="alert">{error}</div>}
-    <button className="primary-button" disabled={!document || busy} onClick={() => void save()}>{busy && document ? "Saving…" : "Save document and return"}</button>
-  </MobileShell>;
 }
 
 export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: string[]; initialTalk?: string }) {
