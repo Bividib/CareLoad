@@ -96,6 +96,7 @@ describe("DailySignalEntry microphone path", () => {
     MockMediaRecorder.latest?.ondataavailable?.({ data: new Blob(["audio"], { type: "audio/webm" }) });
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
     expect(await screen.findByDisplayValue("Fixture transcript")).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Demo transcript used because fixture mode is on");
     fireEvent.change(screen.getByLabelText("Your update"), { target: { value: "Edited transcript" } });
     expect(screen.getByLabelText("Your update")).toHaveValue("Edited transcript");
     expect(fetchMock).toHaveBeenCalledWith("/api/audio/transcribe", expect.objectContaining({ method: "POST" }));

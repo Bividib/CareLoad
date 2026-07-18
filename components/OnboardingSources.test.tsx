@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConnectRecordScreen, TalkThroughScreen } from "@/components/OnboardingScreens";
+import { BuildScreen, displaySourceName, OnboardingStepper, TalkThroughScreen } from "@/components/OnboardingScreens";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -41,30 +41,27 @@ describe("onboarding source steps", () => {
     vi.restoreAllMocks();
   });
 
-  it("previews the sample record before explicitly saving it", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          documents: [{ id: "record-1", originalName: "diabetes-medication-list.pdf", status: "UPLOADED" }],
-        }),
-      })
-      .mockResolvedValueOnce({ ok: true });
-    vi.stubGlobal("fetch", fetchMock);
+  it("uses the same circular progress indicator and clean display source names", () => {
+    render(<OnboardingStepper currentStep={3} />);
+    expect(screen.getByLabelText("Onboarding step 3 of 4")).toBeVisible();
+    expect(screen.getByText("Review tasks").parentElement).toHaveAttribute("aria-current", "step");
+    expect(displaySourceName("Riverside Cardiology Service (fictional)")).toBe("Riverside Cardiology Service");
+  });
 
-    render(<ConnectRecordScreen selected={[]} />);
-    expect(screen.getByRole("button", { name: "Save document and return" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: /Use sample document/ }));
-
-    expect(await screen.findByText("diabetes-medication-list.pdf")).toBeVisible();
-    expect(push).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Save document and return" }));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/onboarding/build"));
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/onboarding/sources",
-      expect.objectContaining({ method: "POST" }),
+  it("matches the talk-through placeholder to the fixture transcript", () => {
+    render(<TalkThroughScreen selected={[]} />);
+    expect(screen.getByLabelText("What should your plan fit around?")).toHaveAttribute(
+      "placeholder",
+      "I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, prefer fewer reminders, and usually walk in the evening.",
     );
+  });
+
+  it("offers only document upload and talk-through sources", () => {
+    render(<BuildScreen />);
+
+    expect(screen.getByRole("button", { name: /Upload documents/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Talk it through/ })).toBeVisible();
+    expect(screen.queryByText(/Connect health record/i)).not.toBeInTheDocument();
   });
 
   it("records, transcribes, and leaves the transcript editable", async () => {
@@ -75,7 +72,7 @@ describe("onboarding source steps", () => {
     });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ transcript: "I work mornings and walk in the evening." }),
+      json: async () => ({ transcript: "I work mornings and walk in the evening.", mode: "LIVE" }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -86,6 +83,7 @@ describe("onboarding source steps", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
 
     const input = await screen.findByDisplayValue("I work mornings and walk in the evening.");
+    expect(screen.getByRole("status")).toHaveTextContent("Transcribed live with ElevenLabs Scribe v2");
     fireEvent.change(input, { target: { value: "I work mornings and prefer an evening walk." } });
     expect(input).toHaveValue("I work mornings and prefer an evening walk.");
     const form = fetchMock.mock.calls[0]?.[1]?.body as FormData;

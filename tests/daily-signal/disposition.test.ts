@@ -41,6 +41,19 @@ describe("Daily Signal fixture classification", () => {
     expect(questions).toHaveLength(2);
   });
 
+  it("uses the same bounded GI follow-ups when duration was extracted", () => {
+    const fixture = fixtureForText("very bad, upset tummy");
+    const questions = questionIdsForExtraction({
+      ...fixture,
+      observations: fixture.observations.map((observation) => ({
+        ...observation,
+        durationText: "three days",
+      })),
+      suggestedQuestionIds: ["ABDOMINAL_PAIN_SEVERITY", "PAIN_SPREADS_TO_BACK"],
+    });
+    expect(questions).toEqual(["BOWEL_DURATION", "DAILY_ACTIVITY_IMPACT"]);
+  });
+
   it("retains urgent-rule question priority", () => {
     expect(questionIdsForExtraction(dailySignalFixtures.URGENT_SYNTHETIC_RULE)).toEqual([
       "ABDOMINAL_PAIN_PERSISTENCE",

@@ -14,9 +14,9 @@ export default async function MessageMeaningPage({ params }: { params: Promise<{
   if (!thread || thread.patientId !== "eleanor-reed" || !thread.messages[0]) notFound();
   const metadata = JSON.parse(thread.messages[0].metadataJson) as { actionsForToday?: string[] };
   return <MobileShell active="/patient/messages">
-    <PageHeader title="What this means for today" subtitle="The recorded next steps from the simulated care-team response." />
+    <PageHeader title="What this means for today" subtitle="The recorded next steps from this predefined simulated response." />
     <RoundedCard className="meaning-page-card"><span className="round-icon mint"><ShieldCheck /></span><div><h2>For today</h2><ul>{metadata.actionsForToday?.map((item) => <li key={item}>{item}</li>)}</ul></div></RoundedCard>
-    <p className="notice">This is predefined fictional prototype content, not clinical advice.</p>
+    <p className="notice">This is predefined simulated prototype content, not clinical advice.</p>
     <PrimaryButton href={`/patient/messages/${thread.id}`}>Back to Messages</PrimaryButton>
   </MobileShell>;
 }

@@ -1,5 +1,6 @@
 import type { PrismaClient, PlanVersionStatus } from "@/generated/prisma6";
 import { planCare, type Frequency, type PlannerInput, type Weekday } from "@/domain/care-plan";
+import { demoDateRange } from "@/lib/demo-date";
 
 const asFrequency = (value: string): Frequency => {
   if (value === "DAILY" || value === "TWICE_DAILY" || value === "SELECTED_WEEKDAYS" || value === "WEEKLY" || value === "ONE_OFF" || value === "DATE_LIMITED") return value;
@@ -72,7 +73,7 @@ export async function createInitialProposedPlan(db: PrismaClient, patientId: str
   await db.carePlanVersion.deleteMany({ where: { patientId, status: "PROPOSED" } });
   const proposed = await db.carePlanVersion.create({ data: {
     id: `plan-initial-proposed-${Date.now()}`, patientId, version: 1, status: "PROPOSED",
-    rangeStart: "2026-07-13", rangeEnd: "2026-07-19", metricsJson: "{}",
+    ...demoDateRange(new Date(), 7), metricsJson: "{}",
   } });
   await generatePersistedPlan(db, proposed.id);
   return proposed;

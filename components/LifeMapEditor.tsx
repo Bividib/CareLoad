@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { RoundedCard, SectionTitle } from "@/components/ui/CareLoadUI";
 
-type Anchor = { id: string; title: string; startTime: string; endTime: string };
+type Anchor = { id: string; title: string; startTime: string; endTime: string; weekdays: string };
 type Friction = { id: string; category: string; description: string; enabled: boolean };
 
 export function LifeMapEditor({
@@ -18,9 +18,15 @@ export function LifeMapEditor({
   onboarding?: boolean;
 }) {
   const router = useRouter();
-  const [anchors, setAnchors] = useState(initialAnchors);
+  const [anchors, setAnchors] = useState(() => initialAnchors.map((anchor) => ({
+    ...anchor,
+    weekdays: anchor.weekdays === "SAT,SUN"
+      ? anchor.weekdays
+      : anchor.weekdays === "MON,TUE,WED,THU,FRI"
+        ? anchor.weekdays
+        : "MON,TUE,WED,THU,FRI,SAT,SUN",
+  })));
   const [error, setError] = useState("");
-  const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const saveButton = useRef<HTMLButtonElement>(null);
 
@@ -38,6 +44,7 @@ export function LifeMapEditor({
       title: "",
       startTime: "12:00",
       endTime: "12:30",
+      weekdays: "MON,TUE,WED,THU,FRI,SAT,SUN",
     }]);
   }
 
@@ -49,15 +56,13 @@ export function LifeMapEditor({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ anchors, frictions }),
     });
+    const body = await response.json() as { planId?: string; error?: string };
     setBusy(false);
-    if (response.ok) {
+    if (response.ok && body.planId) {
       if (onboarding) router.push("/onboarding/preview");
-      else {
-        setSaved(true);
-        router.refresh();
-      }
+      else router.push("/patient/life-map/preview");
     } else {
-      setError("Check that every routine has a name, start time, and end time.");
+      setError(body.error ?? "Check that every routine has a name, start time, and end time.");
     }
   }
 
@@ -76,6 +81,14 @@ export function LifeMapEditor({
               <label>Starts<input aria-label={`${anchor.title || `Routine ${index + 1}`} start`} type="time" value={anchor.startTime} onChange={(event) => updateAnchor(anchor.id, { startTime: event.target.value })} /></label>
               <label>Ends<input aria-label={`${anchor.title || `Routine ${index + 1}`} end`} type="time" value={anchor.endTime} onChange={(event) => updateAnchor(anchor.id, { endTime: event.target.value })} /></label>
             </div>
+            <label>Days
+              <select aria-label={`${anchor.title || `Routine ${index + 1}`} days`} value={anchor.weekdays} onChange={(event) => updateAnchor(anchor.id, { weekdays: event.target.value })}>
+                <option value="MON,TUE,WED,THU,FRI,SAT,SUN">Every day</option>
+                <option value="MON,TUE,WED,THU,FRI">Weekdays only</option>
+                <option value="SAT,SUN">Weekends</option>
+              </select>
+            </label>
+            {(!anchor.startTime || !anchor.endTime) && <small className="muted">Choose the exact start and end time before continuing.</small>}
           </div>
           <button className="remove-routine" aria-label={`Remove ${anchor.title || `routine ${index + 1}`}`} onClick={() => setAnchors((current) => current.filter((item) => item.id !== anchor.id))}><Trash2 /></button>
         </div>)}
@@ -86,8 +99,7 @@ export function LifeMapEditor({
       <SectionTitle>What this protects</SectionTitle>
       <div className="priority-grid"><span>Family time<small>Keep routines clear</small></span><span>Work<small>Avoid interruptions</small></span><span>Rest<small>Leave breathing room</small></span></div>
     </RoundedCard>
-    {saved && <p className="save-message" role="status">Your routines were saved. A proposed plan was created for review; your active plan is unchanged.</p>}
     {error && <p className="error-message" role="alert">{error}</p>}
-    <button ref={saveButton} data-hydrated="false" className="primary-button" type="button" onClick={save} disabled={busy || anchors.some((anchor) => !anchor.title.trim())}>{busy ? "Building your plan…" : onboarding ? "Looks right, build my plan" : "Save changes"}</button>
+    <button ref={saveButton} data-hydrated="false" className="primary-button" type="button" onClick={save} disabled={busy || anchors.some((anchor) => !anchor.title.trim() || !anchor.startTime || !anchor.endTime)}>{busy ? "Building your plan…" : onboarding ? "Looks right, build my plan" : "Save changes"}</button>
   </>;
 }

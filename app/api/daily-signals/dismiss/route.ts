@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { currentDemoDate } from "@/lib/demo-date";
 
 export async function POST() {
+  const signalDate = currentDemoDate();
   await db.dailySignalDismissal.upsert({
-    where: { patientId_signalDate: { patientId: "eleanor-reed", signalDate: "2026-07-17" } },
-    create: { id: `dismissal-2026-07-17`, patientId: "eleanor-reed", signalDate: "2026-07-17" },
+    where: { patientId_signalDate: { patientId: "eleanor-reed", signalDate } },
+    create: { id: `dismissal-${signalDate}`, patientId: "eleanor-reed", signalDate },
     update: {},
   });
   return NextResponse.json({ ok: true });

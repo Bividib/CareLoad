@@ -16,9 +16,11 @@ For the reliable fixture demo set `DEMO_AI_FALLBACK=true`; no key is required.
 Set `DEMO_AI_TIMEOUT_MS=25000` to bound each live AI request without silently
 switching modes. Failed live requests retain the document or Daily Signal text
 and offer Retry and an explicit demo result.
-For live mode set `OPENAI_API_KEY` server-side, `OPENAI_TEXT_MODEL=gpt-5`,
-`OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe`, and
-`DEMO_AI_FALLBACK=false`, then turn fixture mode off at `/demo`. Never use a
+For live mode set `OPENAI_API_KEY` server-side,
+`OPENAI_TEXT_MODEL=gpt-5-mini`, `ELEVENLABS_API_KEY`,
+`ELEVENLABS_STT_MODEL=scribe_v2`, and `DEMO_AI_FALLBACK=false`, then turn
+fixture mode off at `/demo`. OpenAI remains responsible for structured text
+extraction; ElevenLabs handles recorded-audio transcription. Never use a
 `NEXT_PUBLIC_*` variable for a secret.
 
 Recommended browser: current Chromium with browser notifications disabled.

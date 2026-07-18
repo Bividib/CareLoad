@@ -43,6 +43,18 @@ Milestones 1–8 were re-verified during final acceptance.
 
 ## Current limitations
 
+### Match frontend scaffold — 18 July 2026
+
+- Match is a frontend-only peer-support demonstration using fictional composite
+  profile and conversation fixtures.
+- Read state, the revealed Marcus fixture, and locally sent replies are retained
+  in versioned browser storage for demo continuity. No real matching or message
+  delivery occurs, and clearing browser storage resets the Match prototype.
+- Backend matching, authentication, persistence, safety operations, privacy,
+  moderation, blocking, reporting, and notifications remain out of scope.
+- This scaffold is not production-ready peer messaging, and peer experiences
+  are not medical advice.
+
 - Dates are intentionally fixed to the July 2026 synthetic demo week.
 - Playwright uses installed local Chromium; other browser engines are not part
   of the current acceptance scope.

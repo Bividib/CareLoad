@@ -48,15 +48,17 @@ Open <http://localhost:3000>. Presenter controls are at <http://localhost:3000/d
 ```text
 DATABASE_URL=file:./dev.db
 OPENAI_API_KEY=                 # optional; server-side only
-OPENAI_TEXT_MODEL=gpt-5
-OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+OPENAI_TEXT_MODEL=gpt-5-mini
+ELEVENLABS_API_KEY=             # optional; server-side only
+ELEVENLABS_STT_MODEL=scribe_v2
+ELEVENLABS_BASE_URL=https://api.elevenlabs.io
 DEMO_AI_FALLBACK=true          # complete no-key path
 DEMO_AI_TIMEOUT_MS=25000       # bounded live AI wait; input is preserved
 DEMO_RESPONSE_DELAY_MS=10000
 ```
 
 CareLoad uses repository-root `.env`; `.env.local` is also ignored but is not
-required by the documented setup. Never expose the API key through
+required by the documented setup. Never expose either API key through
 `NEXT_PUBLIC_*`.
 
 ## Database and verification
