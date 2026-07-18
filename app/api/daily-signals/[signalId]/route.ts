@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { dailySignalExtractionSchema } from "@/domain/daily-signal/schema";
 import { urgentDemonstrationRule } from "@/domain/daily-signal/questions";
+import { evaluateDailySignalDisposition } from "@/domain/daily-signal/disposition";
 
 const requestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("ANSWER"), answers: z.record(z.string(), z.string()) }),
@@ -18,13 +19,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ si
   if (!signal) return NextResponse.json({ error: "Daily Signal not found." }, { status: 404 });
   if (parsed.data.action === "ANSWER") {
     const answers = { ...(JSON.parse(signal.answersJson) as Record<string, string>), ...parsed.data.answers };
-    const urgent = urgentDemonstrationRule(answers);
-    await db.dailySignal.update({ where: { id: signalId }, data: { answersJson: JSON.stringify(answers), urgentRuleTriggered: urgent, status: urgent ? "URGENT_DEMO" : "QUESTIONS" } });
-    return NextResponse.json({ ok: true, urgent });
+    await db.dailySignal.update({ where: { id: signalId }, data: { answersJson: JSON.stringify(answers), status: "QUESTIONS" } });
+    return NextResponse.json({ ok: true, answers });
   }
   const status = parsed.data.action === "RECORD_ONLY" ? "RECORDED_ONLY" : "CONFIRMED";
-  await db.dailySignal.update({ where: { id: signalId }, data: { status, confirmedJson: JSON.stringify(parsed.data.observations) } });
+  const extraction = signal.extractionJson ? dailySignalExtractionSchema.parse(JSON.parse(signal.extractionJson)) : null;
+  if (!extraction) return NextResponse.json({ error: "Daily Signal extraction is missing." }, { status: 409 });
+  const answers = JSON.parse(signal.answersJson) as Record<string, string>;
+  const disposition = evaluateDailySignalDisposition(extraction, answers);
+  const urgent = disposition.outcome === "URGENT_DEMO" || urgentDemonstrationRule(answers);
+  const persistedStatus = urgent ? "URGENT_DEMO" : status;
+  await db.dailySignal.update({ where: { id: signalId }, data: {
+    status: persistedStatus,
+    confirmedJson: JSON.stringify(parsed.data.observations),
+    urgentRuleTriggered: urgent,
+    shareSuggested: disposition.outcome === "SHARE_SUGGESTED",
+    shareReason: disposition.reason,
+  } });
   await db.auditEvent.create({ data: { id: `audit-${status.toLowerCase()}-${Date.now()}`, patientId: signal.patientId, type: `DAILY_SIGNAL_${status}`, summary: `Patient ${status === "RECORDED_ONLY" ? "recorded privately" : "confirmed"} a synthetic Daily Signal` } });
-  return NextResponse.json({ ok: true, status });
+  return NextResponse.json({ ok: true, status: persistedStatus, disposition });
 }
-

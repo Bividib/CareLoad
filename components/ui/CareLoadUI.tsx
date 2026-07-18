@@ -2,11 +2,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   Bell, CalendarDays, Check, ChevronRight, CircleHelp, ClipboardCheck,
-  Clock3, HeartPulse, Home, MessageCircle, Plus, ShieldCheck,
+  Clock3, Home, MessageCircle, Plus, ShieldCheck,
 } from "lucide-react";
 
 export function CareLoadLogo() {
-  return <Link href="/patient/today" className="logo" aria-label="CareLoad home"><HeartPulse aria-hidden /> <span>CareLoad</span></Link>;
+  return <Link href="/patient/today" className="logo" aria-label="CareLoad home">
+    <svg className="careload-mark" viewBox="0 0 48 42" aria-hidden="true">
+      <path d="M24 39 6.8 23.1C-4.4 11.4 10.3-4.7 24 8.2 37.7-4.7 52.4 11.4 41.2 23.1Z" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M10 22h8l3-7 5 14 4-8h8" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+    <span>CareLoad</span>
+  </Link>;
 }
 
 export function NotificationBell() {
@@ -54,8 +60,9 @@ export function CareMomentCard({ title, tasks, minutes, tone = "blue", time }: {
   return <article className="care-moment"><span className={`moment-icon ${tone}`}><Clock3 /></span><div className="moment-copy">{time && <small>{time}</small>}<h3>{title}</h3><ul>{tasks.map((task) => <li key={task}>{task}</li>)}</ul></div><DurationPill minutes={minutes} tone={tone} /></article>;
 }
 
-export function TaskRow({ title, source, fixed }: { title: string; source: string; fixed: boolean }) {
-  return <div className="task-row"><ClipboardCheck /><div><strong>{title}</strong><small>Source: {source}</small></div><span className={fixed ? "tag fixed" : "tag flexible"}>{fixed ? "Fixed" : "Flexible"}</span><ChevronRight /></div>;
+export function TaskRow({ id, title, source, fixed }: { id?: string; title: string; source: string; fixed: boolean }) {
+  const content = <><ClipboardCheck /><div><strong>{title}</strong><small>{source}</small></div><span className={fixed ? "tag fixed" : "tag flexible"}>{fixed ? "Fixed" : "Flexible"}</span><ChevronRight /></>;
+  return id ? <Link className="task-row" href={`/patient/care-plan/task/${id}`}>{content}</Link> : <div className="task-row">{content}</div>;
 }
 
 export function SegmentedControl() {
@@ -89,8 +96,8 @@ export function ComingSoonState({ title }: { title: string }) {
   return <EmptyState title={title}>Coming in the next milestone. No real healthcare connection is used.</EmptyState>;
 }
 
-export function SectionTitle({ children, action }: { children: ReactNode; action?: string }) {
-  return <div className="section-title"><h2>{children}</h2>{action && <span>{action} <ChevronRight /></span>}</div>;
+export function SectionTitle({ children, action, href }: { children: ReactNode; action?: string; href?: string }) {
+  return <div className="section-title"><h2>{children}</h2>{action && (href ? <Link href={href}>{action} <ChevronRight /></Link> : <span>{action} <ChevronRight /></span>)}</div>;
 }
 
 export function VerifiedIcon() { return <span className="icon-well"><ShieldCheck /></span>; }

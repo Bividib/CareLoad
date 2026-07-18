@@ -14,7 +14,7 @@ const q = (id: string, text: string, applicableConditions: string[] = [], determ
 });
 
 export const questionCatalogue = [
-  q("BOWEL_DURATION", "How long has the bowel change been present?", [], false, ["1–2 days", "3–5 days", "More than 5 days", "Not sure"]),
+  q("BOWEL_DURATION", "How long has your stomach felt upset?", [], false, ["Less than a day", "1–2 days", "3–5 days", "More than 5 days", "Not sure"]),
   q("BOWEL_LAST_NORMAL", "When was your last usual bowel movement?"),
   q("ABDOMINAL_PAIN_SEVERITY", "Would you describe the stomach pain as severe?", [], true),
   q("ABDOMINAL_PAIN_PERSISTENCE", "Has the severe stomach pain been persistent?", [], true),
@@ -42,9 +42,20 @@ export function selectQuestions(ids: string[], conditions: string[], answered: s
   return [...applicable.filter((item) => item.deterministicRule), ...applicable.filter((item) => !item.deterministicRule)].slice(0, 2);
 }
 
+export function questionIdsForExtraction(extraction: { observations: Array<{ domain: string; value: string; durationText: string | null }>; suggestedQuestionIds: string[] }) {
+  const urgentStomach = extraction.observations.some((item) =>
+    item.domain === "stomach" &&
+    item.value.toLocaleLowerCase().includes("severe") &&
+    item.value.toLocaleLowerCase().includes("persistent"),
+  );
+  if (urgentStomach) return ["ABDOMINAL_PAIN_PERSISTENCE", "PAIN_SPREADS_TO_BACK"];
+  const vagueStomach = extraction.observations.some((item) => item.domain === "stomach" && !item.durationText);
+  if (vagueStomach) return ["BOWEL_DURATION", "DAILY_ACTIVITY_IMPACT"];
+  return extraction.suggestedQuestionIds;
+}
+
 export function urgentDemonstrationRule(answers: Record<string, string>) {
   return answers.ABDOMINAL_PAIN_SEVERITY === "Yes"
     && answers.ABDOMINAL_PAIN_PERSISTENCE === "Yes"
     && answers.PAIN_SPREADS_TO_BACK === "Yes";
 }
-

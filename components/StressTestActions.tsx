@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 export function TriggerUpdateButton() {
   const router = useRouter(); const [busy, setBusy] = useState(false);
-  return <button className="primary-button" disabled={busy} onClick={async () => { setBusy(true); await fetch("/api/care-plan-changes/trigger", { method: "POST" }); router.refresh(); }}>{busy ? "Running simulation…" : "Trigger synthetic update"}</button>;
+  return <button className="primary-button" disabled={busy} onClick={async () => { setBusy(true); await fetch("/api/care-plan-changes/trigger", { method: "POST" }); router.refresh(); }}>{busy ? "Preparing update…" : "Load care-plan update"}</button>;
 }
 export function AcceptUpdateButton({ changeId }: { changeId: string }) {
   const router = useRouter(); const [busy, setBusy] = useState(false);

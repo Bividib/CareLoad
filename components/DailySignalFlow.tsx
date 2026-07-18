@@ -1,19 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Keyboard, Mic, Square, X } from "lucide-react";
+import { Check, Keyboard, Mic, Pencil, Square, X } from "lucide-react";
 import type { DailySignalExtraction } from "@/domain/daily-signal/schema";
 import type { QuestionDefinition } from "@/domain/daily-signal/questions";
 import { MobileShell, PageHeader, PrimaryButton, RoundedCard, SecondaryButton, SectionTitle, StatusBanner } from "@/components/ui/CareLoadUI";
 import { SendUpdateButton } from "@/components/MessagingClient";
 
-type ReviewData = { id: string; rawText: string; extraction: DailySignalExtraction; questions: QuestionDefinition[]; answers: Record<string, string>; urgent: boolean; trendSummary: string | null };
+type ReviewData = { id: string; rawText: string; extraction: DailySignalExtraction; questions: QuestionDefinition[]; answers: Record<string, string>; urgent: boolean; trendSummary: string | null; status: string; shareSuggested: boolean; shareReason: string | null };
 
-export function DailySignalEntry({ prompt }: { prompt: string }) {
+export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string; initialText?: string }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"CHOICE" | "TYPE" | "VOICE">("CHOICE");
-  const [text, setText] = useState("");
+  const [mode, setMode] = useState<"CHOICE" | "TYPE" | "VOICE">(initialText ? "TYPE" : "CHOICE");
+  const [text, setText] = useState(initialText);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -89,27 +90,40 @@ export function DailySignalEntry({ prompt }: { prompt: string }) {
 export function DailySignalReview({ data }: { data: ReviewData }) {
   const router = useRouter();
   const [answers, setAnswers] = useState(data.answers);
-  const [confirmed, setConfirmed] = useState(false);
+  const initialOutcome = data.status === "CONFIRMED" ? (data.shareSuggested ? "SHARE_SUGGESTED" : "RECORD_ONLY") : null;
+  const [outcome, setOutcome] = useState<"SHARE_SUGGESTED" | "RECORD_ONLY" | null>(initialOutcome);
+  const [reason, setReason] = useState(data.shareReason);
   const [urgent, setUrgent] = useState(data.urgent);
   const [busy, setBusy] = useState(false);
   async function saveAnswers() {
     const response = await fetch(`/api/daily-signals/${data.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "ANSWER", answers }) });
-    const body = await response.json() as { urgent?: boolean };
-    setUrgent(Boolean(body.urgent));
+    if (!response.ok) throw new Error("Answers could not be saved.");
   }
-  async function finish(action: "CONFIRM" | "RECORD_ONLY") {
+  async function confirm() {
     setBusy(true);
-    await saveAnswers();
-    await fetch(`/api/daily-signals/${data.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, observations: data.extraction.observations }) });
+    try {
+      await saveAnswers();
+      const response = await fetch(`/api/daily-signals/${data.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "CONFIRM", observations: data.extraction.observations }) });
+      const body = await response.json() as { disposition?: { outcome: "SHARE_SUGGESTED" | "RECORD_ONLY" | "URGENT_DEMO"; reason: string } };
+      if (!response.ok || !body.disposition) throw new Error("Confirmation failed.");
+      setReason(body.disposition.reason);
+      if (body.disposition.outcome === "URGENT_DEMO") setUrgent(true);
+      else setOutcome(body.disposition.outcome);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function recordOnly() {
+    setBusy(true);
+    const response = await fetch(`/api/daily-signals/${data.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "RECORD_ONLY", observations: data.extraction.observations }) });
     setBusy(false);
-    if (action === "RECORD_ONLY") router.push("/patient/today"); else setConfirmed(true);
+    if (response.ok) router.push("/patient/today");
   }
   if (urgent) return <MobileShell active="/patient/today"><PageHeader title="Configured demonstration rule" /><StatusBanner tone="amber" title="Synthetic prototype urgent behaviour">The information you confirmed matched the predefined demonstration rule for severe persistent abdominal pain that spreads to the back. This prototype cannot provide clinical guidance; a routine delayed simulated message is not presented as sufficient.</StatusBanner><p className="notice">This is predefined synthetic prototype behaviour, not deployable clinical guidance.</p></MobileShell>;
-  return <MobileShell active="/patient/today"><PageHeader title="Review your Daily Signal" subtitle="You decide what is recorded or shared." />
-    <RoundedCard><SectionTitle>CareLoad understood</SectionTitle>{data.extraction.observations.map((item, index) => <article className="observation-card" key={`${item.domain}-${index}`}><strong>{item.domain}: {item.value}</strong><span>Trend: {item.trend.toLowerCase()} · Certainty: {item.certainty.toLowerCase().replaceAll("_", " ")}</span><blockquote>“{item.sourcePhrase}”</blockquote></article>)}<p className="muted">{data.trendSummary}</p></RoundedCard>
+  return <MobileShell active="/patient/today"><PageHeader title="Review your update" subtitle="Check what CareLoad understood before you choose whether to share it." />
+    <RoundedCard className="review-summary-card"><div className="review-card-head"><span className="round-icon mint"><Check /></span><SectionTitle>CareLoad understood</SectionTitle></div><ul className="review-observations">{data.extraction.observations.map((item, index) => <li key={`${item.domain}-${index}`}><strong>{item.domain}:</strong> {item.value}</li>)}</ul></RoundedCard>
     {data.questions.length > 0 && <><SectionTitle>Up to two quick questions</SectionTitle>{data.questions.map((question) => <RoundedCard key={question.id}><label className="field">{question.text}<select value={answers[question.id] ?? ""} onChange={(event) => setAnswers((old) => ({ ...old, [question.id]: event.target.value }))}><option value="">Choose an answer</option>{(question.options ?? ["Yes", "No", "Not sure"]).map((option) => <option key={option}>{option}</option>)}</select></label></RoundedCard>)}</>}
-    {data.extraction.shareSuggested && <StatusBanner tone="blue" title="Why sharing is suggested">{data.extraction.shareReason}</StatusBanner>}
     <p className="notice">This does not diagnose a condition.</p>
-    {!confirmed ? <><PrimaryButton onClick={() => void finish("CONFIRM")}>{busy ? "Saving…" : "Yes, that is right"}</PrimaryButton><SecondaryButton href="/patient/daily-signal">Edit</SecondaryButton><SecondaryButton onClick={() => void finish("RECORD_ONLY")}>Keep monitoring</SecondaryButton></> : <><StatusBanner title="Confirmed">Only these patient-confirmed observations can be included in an update.</StatusBanner><SendUpdateButton signalId={data.id} /><SecondaryButton onClick={() => router.push("/patient/today")}>Keep monitoring</SecondaryButton></>}
+    {!outcome ? <><h2 className="choice-heading">Does this look right?</h2><button className="review-choice" disabled={busy} onClick={() => void confirm()}><span className="round-icon mint"><Check /></span><span><strong>{busy ? "Saving…" : "Yes, that’s right"}</strong><small>Confirm before choosing whether to send</small></span>›</button><Link className="review-choice" href={`/patient/daily-signal?edit=${data.id}`}><span className="round-icon blue"><Pencil /></span><span><strong>Edit</strong><small>Make changes before continuing</small></span>›</Link></> : outcome === "SHARE_SUGGESTED" ? <><StatusBanner tone="amber" title="CareLoad suggests sharing this update">{reason}</StatusBanner><SendUpdateButton signalId={data.id} /><SecondaryButton onClick={() => void recordOnly()}>Keep monitoring</SecondaryButton><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link></> : <><StatusBanner title="Saved to your Daily Signals">{reason}</StatusBanner><PrimaryButton onClick={() => void recordOnly()}>{busy ? "Saving…" : "Return to Today"}</PrimaryButton><SendUpdateButton signalId={data.id} sendAnyway secondary /><Link className="text-button full-button" href={`/patient/daily-signal?edit=${data.id}`}>Edit</Link></>}
   </MobileShell>;
 }

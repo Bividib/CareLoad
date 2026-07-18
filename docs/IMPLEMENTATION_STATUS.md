@@ -16,6 +16,28 @@ Milestones 1–8 were re-verified during final acceptance.
 | 7 — Care Plan Stress Test | DONE | Persisted cardiology fixture, deterministic 14-day simulation and metrics, proposed-plan isolation, unresolved work, clarification reuse, preview, and transactional acceptance. See `MILESTONE_7_AUDIT.md`. |
 | 8 — Demo hardening and release | DONE | Eight deterministic checkpoints, persisted fixture control, complete E2E flow, error/loading/accessibility hardening, presenter checklist, README, and final demo-path audit. See `MILESTONE_8_AUDIT.md`. |
 
+## Daily Signal disposition correction — 18 July 2026
+
+- Fixed the fixture classifier that allowed “very bad, upset tummy” to fall
+  through to the generic fatigue fixture. Normalised GI synonym matching now
+  preserves the exact patient phrase as stomach-observation evidence.
+- The final disposition is now deterministic and calculated after approved
+  follow-up answers are saved. It produces `SHARE_SUGGESTED`, `RECORD_ONLY`,
+  or the existing separate `URGENT_DEMO` outcome.
+- Share-suggested and record-only states have distinct, non-dead-end actions.
+  Record-only preserves patient choice through **Send anyway** without creating
+  a message or response job when the patient returns to Today.
+- Unit and component coverage includes the original regression, GI priority,
+  question selection, both routine dispositions, and the urgent demonstration
+  rule. Live-mode extraction was also verified for “very bad, upset tummy”:
+  it returned the stomach domain, the exact evidence phrase, and the approved
+  duration/activity questions.
+- Playwright verified both Share Suggested and Record Only from Today at
+  390 px and 430 px, including delayed response persistence and the absence of
+  a message thread for Return to Today. Physical microphone hardware remains a
+  manual verification item; automated MediaRecorder/transcription parity is
+  covered with browser mocks.
+
 ## Current limitations
 
 - Dates are intentionally fixed to the July 2026 synthetic demo week.

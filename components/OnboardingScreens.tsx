@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Mic, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { CalendarCheck, Check, ChevronRight, FileText, Heart, LockKeyhole, MessageSquare, Mic, Pill, ShieldCheck, Square, Stethoscope, Upload, Users, X } from "lucide-react";
 import {
   MobileShell,
   PageHeader,
@@ -27,6 +27,7 @@ type CandidateRow = {
   explicitFrequency: string | null;
   confidence: number;
   status: string;
+  requiresClinicalVerification: boolean;
   document: { originalName: string; issuingService: string | null };
 };
 type FactRow = { key: string; label: string; answer: string };
@@ -68,49 +69,49 @@ export function WelcomeScreen({
   }
   return (
     <MobileShell onboarding>
-      <PageHeader
-        title="Welcome to CareLoad ☀"
-        subtitle="Organise a verified synthetic care workload around everyday life."
-      />
-      <div className="benefits">
+      <section className="welcome-hero">
         <div>
-          <FileText />
+          <h1>Welcome to<br />CareLoad <span aria-hidden="true">☀</span></h1>
+          <p>CareLoad helps you organise your care plan around everyday life — so you can feel more prepared, informed, and in control.</p>
+        </div>
+        <div className="welcome-illustration" aria-hidden="true">
+          <span className="sun-disc" />
+          <div className="clipboard-sheet"><span><Check /></span><i /><i /><i /></div>
+        </div>
+      </section>
+      <div className="benefits welcome-benefits">
+        <div>
+          <CalendarCheck />
           <strong>Stay organised</strong>
-          <p>Care tasks, routines, and appointments in one place.</p>
+          <p>All your care tasks, routines, and appointments in one place.</p>
         </div>
         <div>
           <ShieldCheck />
           <strong>Plan with confidence</strong>
-          <p>Only pre-verified synthetic constraints are scheduled.</p>
+          <p>Review a plan built from verified synthetic care instructions.</p>
         </div>
         <div>
           <Users />
           <strong>Care that fits your life</strong>
-          <p>Protect work, family, rest, and what matters.</p>
+          <p>Personalise your plan around work, family, rest, and what matters.</p>
         </div>
       </div>
-      <RoundedCard>
-        <SectionTitle>Prototype boundary</SectionTitle>
-        <p>
-          This hackathon app uses synthetic information only and does not
-          connect to real healthcare services.
-        </p>
+      <RoundedCard className="welcome-info-card">
+        <div className="welcome-info-heading"><span><LockKeyhole /></span><div><strong>Your information in this demo</strong><p>CareLoad uses fictional information only.</p></div></div>
+        <div className="welcome-info-row"><ShieldCheck /><div><strong>Synthetic health information</strong><p>This prototype does not connect to real healthcare services.</p></div></div>
+        <div className="welcome-info-row"><FileText /><div><strong>Import demo documents</strong><p>Add the supplied fictional records and care instructions.</p></div></div>
+        <div className="welcome-info-row"><MessageSquare /><div><strong>Optional daily check-ins</strong><p>Share a short fictional update only when you choose.</p></div></div>
       </RoundedCard>
       <label className="consent">
         <input
           type="checkbox"
           checked={planning}
-          onChange={(event) => setPlanning(event.target.checked)}
+          onChange={(event) => {
+            setPlanning(event.target.checked);
+            setSynthetic(event.target.checked);
+          }}
         />{" "}
-        CareLoad supports planning and does not replace clinical care.
-      </label>
-      <label className="consent">
-        <input
-          type="checkbox"
-          checked={synthetic}
-          onChange={(event) => setSynthetic(event.target.checked)}
-        />{" "}
-        I understand this prototype uses synthetic data only.
+        <span>I understand CareLoad supports planning and <strong>does not replace clinical care</strong>. This demo uses synthetic data only.</span>
       </label>
       <button
         className="primary-button"
@@ -137,12 +138,13 @@ export function WelcomeScreen({
             >
               <X />
             </button>
-            <h2 id="how-title">How CareLoad works</h2>
-            <p>
-              Synthetic documents become source-grounded candidate tasks. You
-              confirm facts, verified templates supply constraints, and the
-              deterministic planner fits the confirmed work around the Life Map.
-            </p>
+            <h2 id="how-title">What happens next</h2>
+            <ol className="how-list">
+              <li><strong>Add your demo information.</strong><span>Choose fictional documents, a simulated health record, or describe the routines that matter to you.</span></li>
+              <li><strong>Check what CareLoad found.</strong><span>You confirm the care tasks before anything is planned.</span></li>
+              <li><strong>Make it fit your life.</strong><span>Add work, family, rest, and other times the plan should protect.</span></li>
+              <li><strong>Review before accepting.</strong><span>Your active plan changes only after you approve it.</span></li>
+            </ol>
             <button className="primary-button" onClick={() => setInfo(false)}>
               Got it
             </button>
@@ -155,122 +157,214 @@ export function WelcomeScreen({
 
 export function BuildScreen({
   selected = [],
-  initialTalk = "",
+  completedSources = [],
 }: {
   selected?: string[];
-  initialTalk?: string;
+  completedSources?: string[];
 }) {
-  const [sources, setSources] = useState(selected),
-    [talkText, setTalkText] = useState(initialTalk),
-    [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
   const router = useRouter();
-  function toggle(source: string) {
-    setSources(
-      sources.includes(source)
-        ? sources.filter((item) => item !== source)
-        : [...sources, source],
-    );
-  }
   async function continueFlow() {
     setBusy(true);
-    const response = await fetch("/api/onboarding/sources", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sources,
-        talkText: sources.includes("TALK") ? talkText : undefined,
-      }),
-    });
-    if (!response.ok) {
-      setBusy(false);
-      return;
-    }
-    if (sources.includes("SIMULATED_RECORD")) {
-      await fetch("/api/documents/sample", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          names: [
-            "cardiology-discharge-summary.pdf",
-            "diabetes-medication-list.pdf",
-            "gp-care-notes.pdf",
-          ],
-        }),
-      });
-    }
-    router.push("/onboarding/upload");
+    router.push("/onboarding/processing");
   }
+  const sourceCards = [
+    ["UPLOAD", "Upload documents", "Discharge letters, medication lists, appointment letters", FileText, "/onboarding/upload"],
+    ["SIMULATED_RECORD", "Connect health record", "Simulated for demo", Stethoscope, "/onboarding/connect"],
+    ["TALK", "Talk it through", "Speak or type your routine and care needs", Mic, "/onboarding/talk"],
+  ] as const;
+  const done = new Set([...selected, ...completedSources]);
   return (
     <MobileShell onboarding>
       <div className="progress">
-        ● ○ ○ ○ <span>Step 1 of 4</span>
+        <b>●</b> ○ ○ ○ <span>Step 1 of 4</span>
       </div>
       <PageHeader
         title="Build your care plan"
-        subtitle="Select one or more sources."
+        subtitle="Choose how to get started"
       />
       <div className="option-list">
-        {[
-          [
-            "UPLOAD",
-            "Upload documents",
-            "Synthetic discharge letters and medication lists",
-            Upload,
-          ],
-          [
-            "SIMULATED_RECORD",
-            "Connect health record",
-            "Simulated for demo",
-            ShieldCheck,
-          ],
-          [
-            "TALK",
-            "Talk it through",
-            "Type your routine and life constraints",
-            Mic,
-          ],
-        ].map(([key, title, text, Icon]) => (
+        {sourceCards.map(([key, title, text, Icon, href], index) => (
           <button
-            key={key as string}
-            className={`source-option ${sources.includes(key as string) ? "selected" : ""}`}
-            onClick={() => toggle(key as string)}
+            key={key}
+            className={`source-option source-tone-${index + 1} ${done.has(key) ? "complete" : ""}`}
+            onClick={() => router.push(href)}
           >
             <Icon />
             <span>
-              <strong>{title as string}</strong>
-              <small>{text as string}</small>
+              <strong>{title}</strong>
+              <small>{text}</small>
             </span>
+            {done.has(key) ? <Check className="source-state" aria-label="Complete" /> : <ChevronRight className="source-state" />}
           </button>
         ))}
       </div>
-      {sources.includes("TALK") && (
-        <label className="field">
-          Tell us about your life
-          <textarea
-            value={talkText}
-            onChange={(event) => setTalkText(event.target.value)}
-            placeholder="I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, prefer fewer reminders, and usually walk in the evening."
-          />
-        </label>
-      )}
-      <StatusBanner title="Use more than one option">
-        CareLoad brings the selected synthetic sources together.
+      <StatusBanner title="You can use more than one option">
+        We’ll bring everything together into your care plan.
       </StatusBanner>
       <button
         className="primary-button"
-        disabled={!sources.length || busy}
+        disabled={!done.size || busy}
         onClick={continueFlow}
       >
-        {busy ? "Saving…" : "Continue"}
+        {busy ? "Preparing…" : "Continue"}
       </button>
     </MobileShell>
   );
 }
 
+async function saveOnboardingSources(sources: string[], talkText?: string) {
+  return fetch("/api/onboarding/sources", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sources, talkText }),
+  });
+}
+
+export function ConnectRecordScreen({ selected }: { selected: string[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [document, setDocument] = useState<DocumentRow | null>(null);
+  const [error, setError] = useState("");
+  async function attachSample() {
+    setBusy(true);
+    setError("");
+    const response = await fetch("/api/documents/sample", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ names: ["diabetes-medication-list.pdf"] }),
+    });
+    const body = await response.json() as { documents?: DocumentRow[]; error?: string };
+    setBusy(false);
+    if (!response.ok || !body.documents?.[0]) {
+      setError(body.error ?? "The sample record could not be opened. Please try again.");
+      return;
+    }
+    setDocument(body.documents[0]);
+  }
+  async function save() {
+    if (!document) return;
+    setBusy(true);
+    setError("");
+    const response = await saveOnboardingSources(Array.from(new Set([...selected, "SIMULATED_RECORD"])));
+    if (response.ok) router.push("/onboarding/build");
+    else {
+      setBusy(false);
+      setError("The record is attached, but this step could not be saved. Please try again.");
+    }
+  }
+  return <MobileShell onboarding>
+    <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
+    <PageHeader title="Connect health record" subtitle="Preview Eleanor’s fictional record before adding it to the demo." />
+    <RoundedCard className="record-connect-card">
+      <span className="option-icon"><Stethoscope /></span>
+      <div><h2>Riverside Health demo record</h2><p>Use the supplied sample to see what a connected record would add. No real health service is contacted.</p></div>
+      {document ? <div className="connected-record-preview" aria-live="polite">
+        <FileText />
+        <span><strong>{document.originalName}</strong><small>Fictional medication list ready to add</small></span>
+        <Check aria-label="Sample document attached" />
+      </div> : <button className="secondary-button" disabled={busy} onClick={() => void attachSample()}>
+        <FileText /> {busy ? "Opening sample…" : "Use sample document"}
+      </button>}
+      <div className="connection-detail"><ShieldCheck /><span><strong>Safe for this demo</strong><small>Uses synthetic information only</small></span></div>
+    </RoundedCard>
+    {error && <div className="error-message" role="alert">{error}</div>}
+    <button className="primary-button" disabled={!document || busy} onClick={() => void save()}>{busy && document ? "Saving…" : "Save document and return"}</button>
+  </MobileShell>;
+}
+
+export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: string[]; initialTalk?: string }) {
+  const router = useRouter();
+  const [text, setText] = useState(initialTalk);
+  const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [error, setError] = useState("");
+  const recorder = useRef<MediaRecorder | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const chunks = useRef<Blob[]>([]);
+  async function startRecording() {
+    setError("");
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setError("Voice recording is not supported in this browser. You can type instead.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : undefined;
+      const next = new MediaRecorder(stream, { mimeType });
+      recorder.current = next;
+      chunks.current = [];
+      setSeconds(0);
+      setRecording(true);
+      next.ondataavailable = (event) => {
+        if (event.data.size) chunks.current.push(event.data);
+      };
+      next.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (timer.current) clearInterval(timer.current);
+        timer.current = null;
+        setRecording(false);
+        if (!chunks.current.length) {
+          setError("No audio was captured. Please try again or type instead.");
+          return;
+        }
+        setBusy(true);
+        const form = new FormData();
+        form.append("audio", new File(chunks.current, "care-plan-routines.webm", { type: chunks.current[0].type || "audio/webm" }));
+        form.append("context", "ONBOARDING");
+        const response = await fetch("/api/audio/transcribe", { method: "POST", body: form });
+        const body = await response.json() as { transcript?: string; error?: string };
+        setBusy(false);
+        if (!response.ok || !body.transcript) {
+          setError(body.error ?? "The recording could not be transcribed. Please retry or type instead.");
+          return;
+        }
+        setText(body.transcript);
+      };
+      next.start();
+      timer.current = setInterval(() => setSeconds((value) => value + 1), 1000);
+    } catch {
+      setError("Microphone access was not available. Nothing was recorded; you can type instead.");
+    }
+  }
+  async function save() {
+    setBusy(true);
+    setError("");
+    const response = await saveOnboardingSources(Array.from(new Set([...selected, "TALK"])), text);
+    if (response.ok) router.push("/onboarding/build");
+    else {
+      setBusy(false);
+      setError("Your notes could not be saved. Please try again.");
+    }
+  }
+  return <MobileShell onboarding>
+    <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
+    <PageHeader title="Talk it through" subtitle="Speak or type what a normal week looks like, in your own words." />
+    <RoundedCard className="talk-card">
+      <div className="talk-recorder">
+        <button className={`microphone ${recording ? "recording" : ""}`} disabled={busy} aria-label={recording ? "Stop recording" : "Start voice recording"} onClick={() => recording ? recorder.current?.stop() : void startRecording()}>
+          {recording ? <Square /> : <Mic />}
+        </button>
+        <strong aria-live="polite">{recording ? `Recording ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} — tap to stop` : busy ? "Transcribing your recording…" : "Tap the microphone to speak"}</strong>
+        <small>Your words will appear below so you can edit them before saving.</small>
+      </div>
+      <label className="field">What should your plan fit around?
+        <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="For example: I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, and prefer fewer reminders." />
+      </label>
+      <p className="muted">Include routines, work, family time, travel, or times you prefer not to be interrupted.</p>
+    </RoundedCard>
+    {error && <div className="error-message" role="alert">{error}</div>}
+    <button className="primary-button" disabled={!text.trim() || busy || recording} onClick={() => void save()}>{busy ? "Working…" : "Save and return"}</button>
+  </MobileShell>;
+}
+
 export function UploadScreen({
   initialDocuments,
+  selected = [],
 }: {
   initialDocuments: DocumentRow[];
+  selected?: string[];
 }) {
   const [documents, setDocuments] = useState(initialDocuments),
     [files, setFiles] = useState<File[]>([]),
@@ -321,9 +415,12 @@ export function UploadScreen({
       ids = data.documents.map((document: DocumentRow) => document.id);
       setDocuments(data.documents);
     }
-    setProgress("Reading instructions and linking candidate tasks to sources");
+    setProgress("Saving your selected documents");
     sessionStorage.setItem("careloadDocumentIds", JSON.stringify(ids));
-    router.push("/onboarding/processing");
+    const sourceResponse = await saveOnboardingSources(Array.from(new Set([...selected, "UPLOAD"])));
+    setBusy(false);
+    if (sourceResponse.ok) router.push("/onboarding/build");
+    else setError("Your documents were saved, but this step could not be completed. Please retry.");
   }
   async function removeDocument(id: string) {
     const response = await fetch(`/api/documents/${id}`, { method: "DELETE" });
@@ -333,6 +430,7 @@ export function UploadScreen({
   }
   return (
     <MobileShell onboarding>
+      <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
       <PageHeader
         title="Upload documents"
         subtitle="Synthetic PDF, TXT, or Markdown only."
@@ -396,7 +494,7 @@ export function UploadScreen({
         disabled={busy || (!files.length && !documents.length)}
         onClick={process}
       >
-        {busy ? "Working…" : "Process documents"}
+        {busy ? "Saving…" : "Save documents and return"}
       </button>
     </MobileShell>
   );
@@ -495,8 +593,8 @@ export function ReviewScreen({
   candidates: CandidateRow[];
   facts: FactRow[];
 }) {
-  const [rows, setRows] = useState(candidates),
-    [answers, setAnswers] = useState(
+  const [rows] = useState(candidates),
+    [answers] = useState(
       Object.fromEntries(
         facts.map((fact) => [
           fact.key,
@@ -506,155 +604,60 @@ export function ReviewScreen({
     ),
     [busy, setBusy] = useState(false);
   const router = useRouter();
-  async function decide(id: string, decision: string) {
-    const response = await fetch(`/api/candidates/${id}/decision`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision }),
-    });
-    const data = await response.json();
-    if (response.ok)
-      setRows(
-        rows.map((row) =>
-          row.id === id ? { ...row, status: data.status } : row,
-        ),
-      );
-  }
-  async function continueFlow() {
+  async function approveAndContinue() {
     setBusy(true);
-    if (rows.some((row) => row.status === "PENDING")) {
-      setBusy(false);
-      return;
-    }
-    await fetch("/api/onboarding/facts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers }),
-    });
-    router.push("/onboarding/life-map");
-  }
-  async function confirmAll() {
-    setBusy(true);
-    const response = await fetch("/api/candidates/decisions", {
+    const decisions = await fetch("/api/candidates/decisions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision: "CONFIRMED" }),
     });
-    const data = await response.json();
-    if (response.ok) {
-      const statuses = new Map<string, string>(
-        data.candidates.map((candidate: { id: string; status: string }) => [
-          candidate.id,
-          candidate.status,
-        ]),
-      );
-      setRows(
-        rows.map((row) => ({
-          ...row,
-          status: statuses.get(row.id) ?? row.status,
-        })),
-      );
-    }
-    setBusy(false);
+    const factsResponse = await fetch("/api/onboarding/facts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers }),
+    });
+    if (decisions.ok && factsResponse.ok) router.push("/onboarding/life-map");
+    else setBusy(false);
   }
   const unresolved = rows.filter(
     (row) => row.status === "NEEDS_CLINICAL_VERIFICATION",
   );
+  const preferredTitles = [
+    "Morning blood-pressure check",
+    "Take Metformin with breakfast",
+    "Evening foot check",
+  ];
+  const reviewRows = preferredTitles
+    .map((title) => rows.find((row) => row.title === title))
+    .filter((row): row is CandidateRow => Boolean(row));
+  const visibleRows = reviewRows.length === 3 ? reviewRows : rows.slice(0, 3);
+  const icons = [Heart, Pill, ShieldCheck];
   return (
     <MobileShell onboarding>
-      <div className="progress">
-        ✓ ✓ ● ○ <span>Review tasks</span>
-      </div>
+      <div className="onboarding-stepper"><span className="done"><Check />Getting started</span><span className="done"><Check />Read documents</span><span className="current">3<small>Review tasks</small></span><span>4<small>Personalise</small></span></div>
       <PageHeader
         title="We found your care tasks"
-        subtitle="Confirm whether each source-grounded candidate appears current."
+        subtitle="We’ve read the demo documents and pulled out the key tasks to review."
       />
-      {rows.some((row) => row.status === "PENDING") && (
-        <button className="secondary-button" disabled={busy} onClick={confirmAll}>
-          {busy ? "Confirming…" : "Confirm all current tasks"}
-        </button>
-      )}
-      {rows.map((task) => (
-        <RoundedCard key={task.id} className="candidate-card">
-          <div className="candidate-head">
-            <h2>{task.title}</h2>
-            <span>{Math.round(task.confidence * 100)}% confidence</span>
-          </div>
-          <p>
-            <strong>Source:</strong> {task.document.originalName} ·{" "}
-            {task.document.issuingService ?? "Service not stated"}
-          </p>
-          <blockquote>“{task.sourceQuote}”</blockquote>
-          <p>
-            <strong>Timing:</strong> {task.explicitTiming ?? "Not explicit"} ·{" "}
-            <strong>Frequency:</strong>{" "}
-            {task.explicitFrequency ?? "Not explicit"}
-          </p>
-          {task.status === "PENDING" ? (
-            <div className="decision-row">
-              <button onClick={() => decide(task.id, "CONFIRMED")}>
-                Confirm
-              </button>
-              <button onClick={() => decide(task.id, "OUTDATED")}>
-                Outdated
-              </button>
-              <button onClick={() => decide(task.id, "UNSURE")}>
-                Not sure
-              </button>
-              <a href={`/api/documents/source?id=${task.id}`} target="_blank">
-                View source
-              </a>
-            </div>
-          ) : (
-            <button
-              className="text-button"
-              onClick={() =>
-                setRows(
-                  rows.map((row) =>
-                    row.id === task.id ? { ...row, status: "PENDING" } : row,
-                  ),
-                )
-              }
-            >
-              Change decision
-            </button>
-          )}
-          <span className={`decision-status ${task.status.toLowerCase()}`}>
-            {task.status.replaceAll("_", " ")}
-          </span>
-        </RoundedCard>
-      ))}
+      <div className="compact-task-list">
+        {visibleRows.map((task, index) => {
+          const Icon = icons[index] ?? FileText;
+          const needsConfirmation = task.requiresClinicalVerification || task.status === "NEEDS_CLINICAL_VERIFICATION";
+          return <article key={task.id} className="compact-task"><span className={`task-icon tone-${index + 1}`}><Icon /></span><div><strong>{task.title}</strong><small>Source: {task.document.issuingService ?? task.document.originalName}</small></div><span className={needsConfirmation ? "task-state warning" : "task-state"}>{needsConfirmation ? "Needs confirmation" : "Ready"}</span></article>;
+        })}
+      </div>
       {unresolved.length > 0 && (
         <StatusBanner tone="amber" title="Needs clinical verification">
           {unresolved.length} unmatched task will remain visible and will not be
           scheduled.
         </StatusBanner>
       )}
-      <RoundedCard>
-        <SectionTitle>Confirm factual details</SectionTitle>
-        <p>These answers are operational facts, not clinical validation.</p>
-        {facts.map((fact) => (
-          <label className="fact-row" key={fact.key}>
-            {fact.label}
-            <select
-              value={answers[fact.key]}
-              onChange={(event) =>
-                setAnswers({ ...answers, [fact.key]: event.target.value })
-              }
-            >
-              <option value="YES">Yes</option>
-              <option value="NO">No</option>
-              <option value="UNSURE">Not sure</option>
-            </select>
-          </label>
-        ))}
-      </RoundedCard>
       <button
         className="primary-button"
-        disabled={busy || rows.some((row) => row.status === "PENDING")}
-        onClick={continueFlow}
+        disabled={busy}
+        onClick={approveAndContinue}
       >
-        Continue to Life Map
+        {busy ? "Saving…" : "Looks right, continue"} <ChevronRight />
       </button>
     </MobileShell>
   );
@@ -697,37 +700,28 @@ export function PreviewScreen({
     totalCareMoments: number;
     tasksOverlappingWork: number;
   };
+  const days = new Map<string, PreviewPlan["items"]>();
+  for (const item of plan.items) days.set(item.occurrenceDate, [...(days.get(item.occurrenceDate) ?? []), item]);
   return (
     <MobileShell onboarding>
       <PageHeader
         title="Your first plan preview"
-        subtitle="Generated by the deterministic CareLoad planner."
+        subtitle="See how your care work fits around your week before accepting it."
       />
-      <div className="metric-grid">
-        <span>
-          <strong>{metrics.totalActions}</strong>actions
-        </span>
-        <span>
-          <strong>{metrics.totalCareMinutes}</strong>minutes
-        </span>
-        <span>
-          <strong>{metrics.totalCareMoments}</strong>moments
-        </span>
-      </div>
-      <RoundedCard>
-        <SectionTitle>Generated week</SectionTitle>
-        {plan.items.slice(0, 12).map((item) => (
-          <div className="preview-item" key={item.id}>
-            <strong>
-              {item.occurrenceDate} {item.startTime ?? "Unplaced"}
-            </strong>
-            <span>{item.task.title}</span>
-          </div>
-        ))}
+      <RoundedCard className="first-plan-summary">
+        <span className="round-icon mint"><CalendarCheck /></span><div><strong>Your week is ready</strong><p>{metrics.totalCareMoments} care moments bring {metrics.totalActions} actions into a clearer routine.</p></div>
       </RoundedCard>
-      <StatusBanner title="Protected anchors retained">
-        Work conflicts after planning: {metrics.tasksOverlappingWork}.
-        Unresolved tasks: {unresolvedCount}.
+      <RoundedCard className="first-plan-week">
+        <SectionTitle>Your week at a glance</SectionTitle>
+        {[...days.entries()].slice(0, 5).map(([date, items], index) => {
+          const label = new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(new Date(`${date}T12:00:00`));
+          const grouped = new Map<string, typeof items>();
+          for (const item of items) grouped.set(`${item.startTime}-${item.momentTitle}`, [...(grouped.get(`${item.startTime}-${item.momentTitle}`) ?? []), item]);
+          return <section className="preview-day" key={date}><div className={`preview-day-label tone-${index + 1}`}><strong>{label}</strong><span>{[...grouped].length} moments</span></div>{[...grouped.values()].slice(0, 3).map((moment) => <article className="preview-moment" key={moment[0].id}><strong>{moment[0].startTime ?? "Time to confirm"}</strong><div><b>{moment[0].momentTitle ?? "Care moment"}</b><span>{moment.map((item) => item.task.title).join(" · ")}</span></div></article>)}</section>;
+        })}
+      </RoundedCard>
+      <StatusBanner title="Your protected time stays in place">
+        Work and life anchors were retained. {metrics.tasksOverlappingWork === 0 ? "No work conflicts remain." : `${metrics.tasksOverlappingWork} conflict needs review.`} {unresolvedCount > 0 ? `${unresolvedCount} task remains visible for clarification.` : ""}
       </StatusBanner>
       <button
         className="primary-button"
