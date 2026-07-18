@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   Bell, CalendarDays, Check, ChevronRight, CircleHelp, ClipboardCheck,
-  Clock3, Home, MessageCircle, Plus, ShieldCheck,
+  Clock3, Home, MessageCircle, Plus, ShieldCheck, UsersRound,
 } from "lucide-react";
 
 export function CareLoadLogo() {
@@ -32,7 +32,7 @@ const nav = [
   ["/patient/care-plan", "Care Plan", CalendarDays],
   ["/patient/life-map", "Add to My Life", Plus],
   ["/patient/messages", "Messages", MessageCircle],
-  ["/patient/help", "Help", CircleHelp],
+  ["/patient/match", "Match", UsersRound],
 ] as const;
 
 export function BottomNavigation({ active }: { active?: string }) {

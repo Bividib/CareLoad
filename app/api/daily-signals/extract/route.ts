@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildDailySignalContext, extractDailySignal, trendSummary } from "@/lib/daily-signal";
 import { questionIdsForExtraction, selectQuestions } from "@/domain/daily-signal/questions";
+import { safeAiError } from "@/lib/ai-errors";
+import { currentDemoDate } from "@/lib/demo-date";
 
 const requestSchema = z.object({
   text: z.string().min(1).max(5000),
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
     const recent = await db.dailySignal.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take: 7 });
     const id = `signal-${Date.now()}`;
     const signal = await db.dailySignal.create({ data: {
-      id, patientId, signalDate: "2026-07-17", inputMode: parsed.data.inputMode,
+      id, patientId, signalDate: currentDemoDate(), inputMode: parsed.data.inputMode,
       rawText: parsed.data.text, transcript: parsed.data.inputMode === "VOICE" ? parsed.data.text : null,
       status: questions.length ? "QUESTIONS" : "CONFIRMED",
       extractionJson: JSON.stringify(validatedExtraction), questionsJson: JSON.stringify(questions),
@@ -32,7 +34,11 @@ export async function POST(request: Request) {
       trendSummary: trendSummary(validatedExtraction, recent),
     } });
     return NextResponse.json({ id: signal.id, extraction: validatedExtraction, questions });
-  } catch {
-    return NextResponse.json({ error: "Daily Signal analysis failed. Your text is still in this browser; retry or use demo extraction." }, { status: 502 });
+  } catch (error) {
+    const safeError = safeAiError(error);
+    return NextResponse.json({
+      error: `${safeError.message} You can retry or use the explicitly labelled demo extraction.`,
+      errorCode: safeError.code,
+    }, { status: 502 });
   }
 }

@@ -1,13 +1,16 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { checkpointNames } from "@/lib/demo-checkpoints";
 
 export function DemoControls({ fixtureMode }: { fixtureMode: boolean }) {
+  const router = useRouter();
   const [status, setStatus] = useState("");
   async function action(path: string, body?: unknown) {
     setStatus("Working…");
     const response = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
-    setStatus(response.ok ? "Done. Refresh to inspect the seeded state." : "Action failed. Try reset.");
+    setStatus(response.ok ? "Done." : "Action failed. Try reset.");
+    if (response.ok) router.refresh();
   }
   return <div className="demo-controls">
     <button onClick={() => void action("/api/demo/reset", { confirmSyntheticReset: true })}>Reset database</button>

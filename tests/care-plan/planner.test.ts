@@ -18,6 +18,15 @@ describe("deterministic care planner", () => {
     const result = planCare({ ...base, anchors: [{ id: "school", title: "School run", weekdays: ["MON"], startTime: "07:30", endTime: "08:15", protected: true }] });
     expect(result.scheduled[0].startTime).toBe("07:00");
   });
+  it("moves flexible medicine to the next deterministic slot when yoga blocks its old time", () => {
+    const result = planCare({
+      ...base,
+      tasks: [{ ...baseTask, title: "Morning medicine", windowStart: "06:30", windowEnd: "07:30", durationMinutes: 5 }],
+      anchors: [{ id: "yoga", title: "Yoga", weekdays: ["MON"], startTime: "07:00", endTime: "07:30", protected: true }],
+    });
+    expect(result.scheduled[0].startTime).toBe("06:30");
+    expect(result.unplaced).toHaveLength(0);
+  });
   it("does not place home equipment during work", () => {
     const result = planCare({ ...base, tasks: [{ ...baseTask, requiredEquipment: "Cuff", windowStart: "08:00", windowEnd: "15:00" }], anchors: [{ id: "work", title: "Work", weekdays: ["MON"], startTime: "08:00", endTime: "14:00", protected: true, location: "work" }] });
     expect(result.scheduled[0].startTime).toBe("14:00");

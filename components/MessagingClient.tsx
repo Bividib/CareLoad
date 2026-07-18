@@ -35,7 +35,7 @@ export function MessagesClient({ initial, selectedId, planUpdate }: { initial: M
     const timer = setInterval(async () => {
       const next = await fetch("/api/messages", { cache: "no-store" }).then((response) => response.json() as Promise<MessagesPayload>);
       if (next.unreadCount > data.unreadCount) {
-        setToast("A care-team response has arrived.");
+        setToast("A response has arrived.");
         router.refresh();
       }
       setData(next);
@@ -43,7 +43,7 @@ export function MessagesClient({ initial, selectedId, planUpdate }: { initial: M
     return () => clearInterval(timer);
   }, [data.pending, data.unreadCount, router]);
   useEffect(() => { if (active?.unread) void fetch(`/api/messages/${active.id}/read`, { method: "POST" }); }, [active?.id, active?.unread]);
-  return <MobileShell active="/patient/messages"><PageHeader title="Messages" subtitle="Secure messages with your care team" />
+  return <MobileShell active="/patient/messages"><PageHeader title="Messages" subtitle="Messages in this synthetic demo" />
     {toast && <div className="toast" role="status">{toast}</div>}
     {!active ? <RoundedCard><SectionTitle>No messages yet</SectionTitle><p className="muted">A patient-approved update will appear here after it is sent.</p></RoundedCard> :
       <RoundedCard className="conversation-card">
@@ -51,16 +51,17 @@ export function MessagesClient({ initial, selectedId, planUpdate }: { initial: M
         <div className="day-divider"><span />Today<span /></div>
         {active.messages.map((message) => {
           const careTeam = message.author === "SIMULATED_CARE_TEAM";
+          const clarification = active.subject === "Care-plan clarification";
           return <div key={message.id} className={`message ${careTeam ? "care-team" : "patient"}`}>
-            <div className="message-author"><span className="round-icon mint">{careTeam ? <Sparkles /> : <UserRound />}</span><div><strong>{careTeam ? "Simulated care-team response" : "You"}</strong><small>{careTeam ? "Dr Ahmed — care team" : "Care update"} · {message.createdAt.slice(11, 16)}</small></div></div>
+            <div className="message-author"><span className="round-icon mint">{careTeam ? <Sparkles /> : <UserRound />}</span><div><strong>{careTeam ? "Care Response Team" : "You"}</strong><small>{careTeam ? "Predefined simulated response" : clarification ? "Your question" : "Care update"} · {message.createdAt.slice(11, 16)}</small></div></div>
             <p>{message.body}</p>
             <span className="reviewed">Reviewed at {message.createdAt.slice(11, 16)} <CheckCheck /></span>
             {careTeam && <a className="meaning-link" href={`/patient/messages/${active.id}/today`}><Info /><span><strong>What this means for today</strong><small>Review the recorded next steps</small></span><b>›</b></a>}
-            {careTeam && planUpdate && <a className="update-message-link" href={`/patient/updates/${planUpdate.id}`}><span><strong>View your care-plan update</strong><small>{planUpdate.title}</small></span>›</a>}
+            {careTeam && planUpdate && !clarification && <a className="update-message-link" href={`/patient/updates/${planUpdate.id}`}><span><strong>View your care-plan update</strong><small>{planUpdate.title}</small></span>›</a>}
           </div>;
         })}
-        {active.jobs.some((job) => job.state === "PENDING") && <div className="response-wait" role="status"><span /> Awaiting fictional response…<small>Typically within 10 seconds.</small></div>}
+        {active.jobs.some((job) => job.state === "PENDING") && <div className="response-wait" role="status"><span /> Awaiting response…<small>Typically within 10 seconds.</small></div>}
       </RoundedCard>}
-    <div className="ai-note"><Sparkles /> CareLoad can help summarise updates. Your care team makes all clinical decisions.</div>
+    <div className="ai-note"><Sparkles /> No real care team is connected. Responses shown here are predefined and simulated.</div>
   </MobileShell>;
 }

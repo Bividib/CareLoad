@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ConnectRecordScreen, TalkThroughScreen } from "@/components/OnboardingScreens";
+import { ConnectRecordScreen, displaySourceName, OnboardingStepper, TalkThroughScreen } from "@/components/OnboardingScreens";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -41,6 +41,21 @@ describe("onboarding source steps", () => {
     vi.restoreAllMocks();
   });
 
+  it("uses the same circular progress indicator and clean display source names", () => {
+    render(<OnboardingStepper currentStep={3} />);
+    expect(screen.getByLabelText("Onboarding step 3 of 4")).toBeVisible();
+    expect(screen.getByText("Review tasks").parentElement).toHaveAttribute("aria-current", "step");
+    expect(displaySourceName("Riverside Cardiology Service (fictional)")).toBe("Riverside Cardiology Service");
+  });
+
+  it("matches the talk-through placeholder to the fixture transcript", () => {
+    render(<TalkThroughScreen selected={[]} />);
+    expect(screen.getByLabelText("What should your plan fit around?")).toHaveAttribute(
+      "placeholder",
+      "I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, prefer fewer reminders, and usually walk in the evening.",
+    );
+  });
+
   it("previews the sample record before explicitly saving it", async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({
@@ -75,7 +90,7 @@ describe("onboarding source steps", () => {
     });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ transcript: "I work mornings and walk in the evening." }),
+      json: async () => ({ transcript: "I work mornings and walk in the evening.", mode: "LIVE" }),
     });
     vi.stubGlobal("fetch", fetchMock);
 
@@ -86,6 +101,7 @@ describe("onboarding source steps", () => {
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
 
     const input = await screen.findByDisplayValue("I work mornings and walk in the evening.");
+    expect(screen.getByRole("status")).toHaveTextContent("Transcribed live with ElevenLabs Scribe v2");
     fireEvent.change(input, { target: { value: "I work mornings and prefer an evening walk." } });
     expect(input).toHaveValue("I work mornings and prefer an evening walk.");
     const form = fetchMock.mock.calls[0]?.[1]?.body as FormData;

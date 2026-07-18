@@ -13,14 +13,24 @@ export async function processDueSimulatedResponses(db: PrismaClient, now = new D
       const claimed = await tx.simulatedResponseJob.updateMany({ where: { id: job.id, state: "PENDING" }, data: { state: "PROCESSED", processedAt: now } });
       if (claimed.count !== 1) return;
       const thread = await tx.messageThread.findUniqueOrThrow({ where: { id: job.threadId }, include: { dailySignal: true } });
+      const triggeringMessage = await tx.message.findUniqueOrThrow({
+        where: { id: job.triggeringMessageId },
+        select: { metadataJson: true },
+      });
+      const metadata = JSON.parse(triggeringMessage.metadataJson) as { clarificationKind?: string };
       const scenario = job.family === "CLARIFICATION"
-        ? classifyResponse({ urgent: false, clarification: true, shareSuggested: false })
+        ? classifyResponse({
+            urgent: false,
+            clarification: true,
+            shareSuggested: false,
+            clarificationKind: metadata.clarificationKind,
+          })
         : classifyResponse({ urgent: Boolean(thread.dailySignal?.urgentRuleTriggered), clarification: false, shareSuggested: Boolean(thread.dailySignal?.shareSuggested) });
       const response = simulatedResponseSchema.parse(responseTemplates[scenario]);
       if (response.reviewSuggested) shouldCreatePlanUpdate = true;
       await tx.message.create({ data: { id: `message-response-${job.id}`, threadId: job.threadId, patientId: job.patientId, author: "SIMULATED_CARE_TEAM", body: response.message, metadataJson: JSON.stringify(response) } });
       await tx.messageThread.update({ where: { id: job.threadId }, data: { unread: true } });
-      await tx.auditEvent.create({ data: { id: `audit-response-${job.id}`, patientId: job.patientId, type: "SIMULATED_RESPONSE_CREATED", summary: `Delayed fictional response created using ${scenario}` } });
+      await tx.auditEvent.create({ data: { id: `audit-response-${job.id}`, patientId: job.patientId, type: "SIMULATED_RESPONSE_CREATED", summary: `Delayed simulated response created using ${scenario}` } });
       processed.push(job.id);
     });
   }

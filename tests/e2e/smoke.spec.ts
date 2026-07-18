@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 
+test.beforeEach(async ({ request }) => {
+  await request.post("/api/demo/settings", { data: { fixtureMode: true } });
+});
+
 test("loads core patient routes without horizontal overflow", async ({ page }) => {
   await page.request.post("/api/demo/reset", { data: { confirmSyntheticReset: true } });
   for (const path of ["/onboarding/welcome", "/patient/today", "/patient/care-plan", "/patient/life-map", "/patient/messages"]) {
@@ -23,13 +27,15 @@ test("persists a Life Map edit and creates a reviewable proposed plan", async ({
   await page.getByRole("button", { name: "Save changes" }).click();
   expect(pageErrors).toEqual([]);
   expect((await saved).status()).toBe(200);
-  await expect(page.getByRole("status")).toContainText("active plan is unchanged", { timeout: 10_000 });
-  await page.reload();
+  await expect(page).toHaveURL(/\/patient\/life-map\/preview$/, { timeout: 20_000 });
+  await expect(page.getByText("Your active plan has not changed")).toBeVisible();
+  await expect(page.getByText("Saturday", { exact: true })).toBeVisible();
+  await expect(page.getByText("Sunday", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Accept updated plan" }).click();
+  await expect(page).toHaveURL(/\/patient\/today$/, { timeout: 20_000 });
+  await page.goto("/patient/life-map");
   await expect(page.getByLabel("School run start")).toHaveValue("07:20");
   await expect(page.locator('input[value="Lunch break"]')).toBeVisible();
-  await page.goto("/patient/updates/demo-update/preview");
-  await page.getByRole("button", { name: "Accept proposed plan" }).click();
-  await expect(page).toHaveURL(/\/patient\/today$/);
 });
 
 test("uses separate connect-record and talk-through onboarding steps", async ({ page }) => {
@@ -44,10 +50,15 @@ test("uses separate connect-record and talk-through onboarding steps", async ({ 
   await expect(page.getByRole("button", { name: /Connect health record/ })).toHaveClass(/complete/);
   await page.getByRole("button", { name: /Talk it through/ }).click();
   await expect(page).toHaveURL(/\/onboarding\/talk$/);
-  await page.getByLabel("What should your plan fit around?").fill("I work mornings and protect family time in the evening.");
+  await page.getByLabel("What should your plan fit around?").fill("i work weekday mornings");
   await page.getByRole("button", { name: "Save and return" }).click();
   await expect(page).toHaveURL(/\/onboarding\/build$/);
   await expect(page.getByRole("button", { name: /Talk it through/ })).toHaveClass(/complete/);
+  await page.goto("/onboarding/life-map");
+  await expect(page.getByLabel("Routine 1 name")).toHaveValue("Weekday morning work");
+  await expect(page.getByLabel("Weekday morning work days")).toHaveValue("MON,TUE,WED,THU,FRI");
+  await expect(page.getByLabel("Weekday morning work start")).toHaveValue("");
+  await expect(page.getByLabel("Routine 1 name")).not.toHaveValue("School run");
 });
 
 test("completes functional onboarding with deterministic document extraction", async ({ page }) => {

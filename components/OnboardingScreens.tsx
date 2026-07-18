@@ -28,11 +28,13 @@ type CandidateRow = {
   confidence: number;
   status: string;
   requiresClinicalVerification: boolean;
-  document: { originalName: string; issuingService: string | null };
+  document: { originalName: string; issuingService: string | null; extractionMode: string | null };
 };
 type FactRow = { key: string; label: string; answer: string };
 type PreviewPlan = {
   id: string;
+  rangeStart: string;
+  rangeEnd: string;
   metricsJson: string;
   items: Array<{
     id: string;
@@ -40,9 +42,44 @@ type PreviewPlan = {
     startTime: string | null;
     momentTitle: string | null;
     status: string;
-    task: { title: string };
+    explanation: string;
+    task: { id: string; title: string };
   }>;
 };
+type BaselinePlanItem = {
+  taskId: string;
+  occurrenceDate: string;
+  startTime: string | null;
+  status: string;
+};
+
+const onboardingSteps = [
+  "Getting started",
+  "Read documents",
+  "Review tasks",
+  "Personalise",
+] as const;
+
+export function OnboardingStepper({ currentStep }: { currentStep: 1 | 2 | 3 | 4 }) {
+  return (
+    <div className="onboarding-stepper" aria-label={`Onboarding step ${currentStep} of 4`}>
+      {onboardingSteps.map((label, index) => {
+        const step = (index + 1) as 1 | 2 | 3 | 4;
+        const state = step < currentStep ? "done" : step === currentStep ? "current" : "upcoming";
+        return (
+          <span className={state} key={label} aria-current={state === "current" ? "step" : undefined}>
+            {state === "done" ? <Check aria-hidden="true" /> : <b aria-hidden="true">{step}</b>}
+            <small>{label}</small>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+export function displaySourceName(source: string) {
+  return source.replace(/\s*\(fictional\)\s*$/i, "");
+}
 
 export function WelcomeScreen({
   initialConsent = false,
@@ -176,9 +213,7 @@ export function BuildScreen({
   const done = new Set([...selected, ...completedSources]);
   return (
     <MobileShell onboarding>
-      <div className="progress">
-        <b>●</b> ○ ○ ○ <span>Step 1 of 4</span>
-      </div>
+      <OnboardingStepper currentStep={1} />
       <PageHeader
         title="Build your care plan"
         subtitle="Choose how to get started"
@@ -254,6 +289,7 @@ export function ConnectRecordScreen({ selected }: { selected: string[] }) {
     }
   }
   return <MobileShell onboarding>
+    <OnboardingStepper currentStep={1} />
     <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
     <PageHeader title="Connect health record" subtitle="Preview Eleanor’s fictional record before adding it to the demo." />
     <RoundedCard className="record-connect-card">
@@ -280,6 +316,7 @@ export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: st
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [error, setError] = useState("");
+  const [transcriptionMode, setTranscriptionMode] = useState<"LIVE" | "FIXTURE" | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -314,13 +351,14 @@ export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: st
         form.append("audio", new File(chunks.current, "care-plan-routines.webm", { type: chunks.current[0].type || "audio/webm" }));
         form.append("context", "ONBOARDING");
         const response = await fetch("/api/audio/transcribe", { method: "POST", body: form });
-        const body = await response.json() as { transcript?: string; error?: string };
+        const body = await response.json() as { transcript?: string; error?: string; mode?: "LIVE" | "FIXTURE" };
         setBusy(false);
         if (!response.ok || !body.transcript) {
           setError(body.error ?? "The recording could not be transcribed. Please retry or type instead.");
           return;
         }
         setText(body.transcript);
+        setTranscriptionMode(body.mode ?? null);
       };
       next.start();
       timer.current = setInterval(() => setSeconds((value) => value + 1), 1000);
@@ -339,6 +377,7 @@ export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: st
     }
   }
   return <MobileShell onboarding>
+    <OnboardingStepper currentStep={1} />
     <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
     <PageHeader title="Talk it through" subtitle="Speak or type what a normal week looks like, in your own words." />
     <RoundedCard className="talk-card">
@@ -350,9 +389,12 @@ export function TalkThroughScreen({ selected, initialTalk = "" }: { selected: st
         <small>Your words will appear below so you can edit them before saving.</small>
       </div>
       <label className="field">What should your plan fit around?
-        <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="For example: I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, and prefer fewer reminders." />
+        <textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="I work weekday mornings, look after my granddaughter on Tuesdays and Thursdays, prefer fewer reminders, and usually walk in the evening." />
       </label>
       <p className="muted">Include routines, work, family time, travel, or times you prefer not to be interrupted.</p>
+      {transcriptionMode && <p className="transcription-mode" role="status">
+        {transcriptionMode === "LIVE" ? "Transcribed live with ElevenLabs Scribe v2." : "Demo transcript used because fixture mode is on."}
+      </p>}
     </RoundedCard>
     {error && <div className="error-message" role="alert">{error}</div>}
     <button className="primary-button" disabled={!text.trim() || busy || recording} onClick={() => void save()}>{busy ? "Working…" : "Save and return"}</button>
@@ -430,6 +472,7 @@ export function UploadScreen({
   }
   return (
     <MobileShell onboarding>
+      <OnboardingStepper currentStep={1} />
       <button className="back-link" onClick={() => router.push("/onboarding/build")}>← Back to your options</button>
       <PageHeader
         title="Upload documents"
@@ -506,8 +549,15 @@ export function ProcessingScreen({
   existingDocuments: DocumentRow[];
 }) {
   const router = useRouter();
+  const initialFailedNames = existingDocuments
+    .filter((document) => document.status === "FAILED")
+    .map((document) => document.originalName);
   const [stage, setStage] = useState(0),
-    [error, setError] = useState(""),
+    [error, setError] = useState(
+      initialFailedNames.length
+        ? `${initialFailedNames.join(", ")} could not be extracted. Retry when ready.`
+        : "",
+    ),
     [busy, setBusy] = useState(false);
   const stages = [
     "Uploading documents",
@@ -530,7 +580,11 @@ export function ProcessingScreen({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ documentIds: ids, forceFixture }),
     });
-    const data = await response.json();
+    const data = await response.json() as {
+      error?: string;
+      hasFailures?: boolean;
+      results?: Array<{ id: string; status: string }>;
+    };
     setStage(4);
     setBusy(false);
     if (!response.ok || data.hasFailures) {
@@ -543,13 +597,14 @@ export function ProcessingScreen({
         .filter((document) => failedIds.has(document.id))
         .map((document) => document.originalName);
       setError(
-        `${failedNames.length ? failedNames.join(", ") : "One or more documents"} could not be extracted. Retry or use demo extraction.`,
+        `${failedNames.length ? failedNames.join(", ") : "One or more documents"} could not be extracted. ${data.error ?? "Retry when ready."}`,
       );
     }
     else router.push("/onboarding/review");
   }
   return (
     <MobileShell onboarding>
+      <OnboardingStepper currentStep={2} />
       <PageHeader
         title="Reading synthetic documents"
         subtitle="These are real persisted processing stages, not a random percentage."
@@ -622,6 +677,8 @@ export function ReviewScreen({
   const unresolved = rows.filter(
     (row) => row.status === "NEEDS_CLINICAL_VERIFICATION",
   );
+  const extractionModes = new Set(rows.map((row) => row.document.extractionMode).filter(Boolean));
+  const liveExtraction = extractionModes.size === 1 && extractionModes.has("LIVE");
   const preferredTitles = [
     "Morning blood-pressure check",
     "Take Metformin with breakfast",
@@ -634,16 +691,21 @@ export function ReviewScreen({
   const icons = [Heart, Pill, ShieldCheck];
   return (
     <MobileShell onboarding>
-      <div className="onboarding-stepper"><span className="done"><Check />Getting started</span><span className="done"><Check />Read documents</span><span className="current">3<small>Review tasks</small></span><span>4<small>Personalise</small></span></div>
+      <OnboardingStepper currentStep={3} />
       <PageHeader
         title="We found your care tasks"
         subtitle="We’ve read the demo documents and pulled out the key tasks to review."
       />
+      <StatusBanner title={liveExtraction ? "Live OpenAI extraction" : "Demo extraction"}>
+        {liveExtraction
+          ? "These candidate tasks were extracted live with the configured OpenAI text model, then matched against verified task templates."
+          : "These candidate tasks came from deterministic demo fixtures. Turn fixture mode off before extraction to use OpenAI."}
+      </StatusBanner>
       <div className="compact-task-list">
         {visibleRows.map((task, index) => {
           const Icon = icons[index] ?? FileText;
           const needsConfirmation = task.requiresClinicalVerification || task.status === "NEEDS_CLINICAL_VERIFICATION";
-          return <article key={task.id} className="compact-task"><span className={`task-icon tone-${index + 1}`}><Icon /></span><div><strong>{task.title}</strong><small>Source: {task.document.issuingService ?? task.document.originalName}</small></div><span className={needsConfirmation ? "task-state warning" : "task-state"}>{needsConfirmation ? "Needs confirmation" : "Ready"}</span></article>;
+          return <article key={task.id} className="compact-task"><span className={`task-icon tone-${index + 1}`}><Icon /></span><div><strong>{task.title}</strong><small>Source: {displaySourceName(task.document.issuingService ?? task.document.originalName)}</small></div><span className={needsConfirmation ? "task-state warning" : "task-state"}>{needsConfirmation ? "Needs confirmation" : "Ready"}</span></article>;
         })}
       </div>
       {unresolved.length > 0 && (
@@ -665,17 +727,22 @@ export function ReviewScreen({
 
 export function PreviewScreen({
   plan,
+  baselineItems = [],
   unresolvedCount,
+  update = false,
 }: {
   plan: PreviewPlan | null;
+  baselineItems?: BaselinePlanItem[];
   unresolvedCount: number;
+  update?: boolean;
 }) {
   const router = useRouter(),
     [busy, setBusy] = useState(false);
   if (!plan)
     return (
       <MobileShell onboarding>
-        <PageHeader title="Generate your first plan" />
+        <OnboardingStepper currentStep={4} />
+        <PageHeader title={update ? "Build your updated plan" : "Generate your first plan"} />
         <p>
           The deterministic planner is ready once your Life Map is confirmed.
         </p>
@@ -698,31 +765,66 @@ export function PreviewScreen({
     totalActions: number;
     totalCareMinutes: number;
     totalCareMoments: number;
-    tasksOverlappingWork: number;
   };
   const days = new Map<string, PreviewPlan["items"]>();
+  const rangeStart = new Date(`${plan.rangeStart}T12:00:00`);
+  const rangeEnd = new Date(`${plan.rangeEnd}T12:00:00`);
+  for (
+    const date = new Date(rangeStart);
+    date <= rangeEnd;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const key = [
+      date.getFullYear(),
+      String(date.getMonth() + 1).padStart(2, "0"),
+      String(date.getDate()).padStart(2, "0"),
+    ].join("-");
+    days.set(key, []);
+  }
   for (const item of plan.items) days.set(item.occurrenceDate, [...(days.get(item.occurrenceDate) ?? []), item]);
+  const baselineTimes = new Map(
+    baselineItems.map((item) => [`${item.taskId}:${item.occurrenceDate}`, item.startTime]),
+  );
+  const movedItems = plan.items.filter((item) => {
+    const previousTime = baselineTimes.get(`${item.task.id}:${item.occurrenceDate}`);
+    return item.startTime && previousTime && previousTime !== item.startTime;
+  });
   return (
     <MobileShell onboarding>
+      <OnboardingStepper currentStep={4} />
       <PageHeader
-        title="Your first plan preview"
-        subtitle="See how your care work fits around your week before accepting it."
+        title={update ? "Review your updated plan" : "Your first plan preview"}
+        subtitle="See how your care work fits around your full week before accepting it."
       />
       <RoundedCard className="first-plan-summary">
         <span className="round-icon mint"><CalendarCheck /></span><div><strong>Your week is ready</strong><p>{metrics.totalCareMoments} care moments bring {metrics.totalActions} actions into a clearer routine.</p></div>
       </RoundedCard>
       <RoundedCard className="first-plan-week">
         <SectionTitle>Your week at a glance</SectionTitle>
-        {[...days.entries()].slice(0, 5).map(([date, items], index) => {
+        {movedItems.length > 0 && <p className="plan-change-note"><strong>Deterministic replanning:</strong> {movedItems.length} care {movedItems.length === 1 ? "task has" : "tasks have"} moved to the next available time inside the verified window. Every move is labelled below.</p>}
+        {[...days.entries()].map(([date, items], index) => {
           const label = new Intl.DateTimeFormat("en-GB", { weekday: "long" }).format(new Date(`${date}T12:00:00`));
           const grouped = new Map<string, typeof items>();
-          for (const item of items) grouped.set(`${item.startTime}-${item.momentTitle}`, [...(grouped.get(`${item.startTime}-${item.momentTitle}`) ?? []), item]);
-          return <section className="preview-day" key={date}><div className={`preview-day-label tone-${index + 1}`}><strong>{label}</strong><span>{[...grouped].length} moments</span></div>{[...grouped.values()].slice(0, 3).map((moment) => <article className="preview-moment" key={moment[0].id}><strong>{moment[0].startTime ?? "Time to confirm"}</strong><div><b>{moment[0].momentTitle ?? "Care moment"}</b><span>{moment.map((item) => item.task.title).join(" · ")}</span></div></article>)}</section>;
+          for (const item of items) {
+            const key = item.startTime ? `${item.startTime}-${item.momentTitle}` : `unplaced-${item.id}`;
+            grouped.set(key, [...(grouped.get(key) ?? []), item]);
+          }
+          const moments = [...grouped.values()];
+          const scheduledCount = moments.filter((moment) => moment[0].startTime).length;
+          const needsReviewCount = moments.length - scheduledCount;
+          return <section className="preview-day" key={date}><div className={`preview-day-label tone-${index + 1}`}><strong>{label}</strong><span>{scheduledCount} {scheduledCount === 1 ? "moment" : "moments"}{needsReviewCount ? ` · ${needsReviewCount} needs review` : ""}</span></div>{moments.map((moment) => {
+            const first = moment[0];
+            if (!first.startTime) {
+              return <article className="preview-moment needs-review" key={first.id}><strong>Needs review</strong><div><b>No permitted time remains</b><span>{first.task.title}. The deterministic planner will not move it outside its verified window.</span></div></article>;
+            }
+            const moves = [...new Set(moment.flatMap((item) => {
+              const previousTime = baselineTimes.get(`${item.task.id}:${item.occurrenceDate}`);
+              return previousTime && previousTime !== item.startTime ? [`Moved from ${previousTime} to ${item.startTime}`] : [];
+            }))];
+            return <article className="preview-moment" key={first.id}><strong>{first.startTime}</strong><div><b>{first.momentTitle ?? "Care moment"}</b><span>{moment.map((item) => item.task.title).join(" · ")}</span>{moves.map((move) => <small className="moved-time" key={move}>{move}</small>)}</div></article>;
+          })}</section>;
         })}
       </RoundedCard>
-      <StatusBanner title="Your protected time stays in place">
-        Work and life anchors were retained. {metrics.tasksOverlappingWork === 0 ? "No work conflicts remain." : `${metrics.tasksOverlappingWork} conflict needs review.`} {unresolvedCount > 0 ? `${unresolvedCount} task remains visible for clarification.` : ""}
-      </StatusBanner>
       <button
         className="primary-button"
         onClick={async () => {
@@ -734,10 +836,10 @@ export function PreviewScreen({
           else setBusy(false);
         }}
       >
-        {busy ? "Accepting…" : "Accept plan"}
+        {busy ? "Accepting…" : update ? "Accept updated plan" : "Accept plan"}
       </button>
-      <SecondaryButton href="/onboarding/life-map">
-        Adjust Life Map
+      <SecondaryButton href={update ? "/patient/life-map" : "/onboarding/life-map"}>
+        {update ? "Adjust Life Map again" : "Adjust Life Map"}
       </SecondaryButton>
       {unresolvedCount > 0 && (
         <SecondaryButton href="/onboarding/review">

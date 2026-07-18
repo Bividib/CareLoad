@@ -6,7 +6,7 @@ describe("patient UI primitives", () => {
   it("keeps the required navigation order and marks the active tab", () => {
     render(<BottomNavigation active="/patient/care-plan" />);
     expect(screen.getAllByRole("link").map((link) => link.textContent)).toEqual([
-      "Today", "Care Plan", "Add to My Life", "Messages", "Help",
+      "Today", "Care Plan", "Add to My Life", "Messages", "Match",
     ]);
     expect(screen.getByRole("link", { name: "Care Plan" })).toHaveAttribute("aria-current", "page");
   });

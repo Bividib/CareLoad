@@ -18,6 +18,7 @@ export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string;
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [transcriptionMode, setTranscriptionMode] = useState<"LIVE" | "FIXTURE" | null>(null);
   const [seconds, setSeconds] = useState(0);
   const recorder = useRef<MediaRecorder | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -55,7 +56,7 @@ export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string;
         const form = new FormData();
         form.append("audio", new File(chunks.current, "daily-signal.webm", { type: chunks.current[0].type || "audio/webm" }));
         const response = await fetch("/api/audio/transcribe", { method: "POST", body: form });
-        const body = await response.json() as { transcript?: string; error?: string };
+        const body = await response.json() as { transcript?: string; error?: string; mode?: "LIVE" | "FIXTURE" };
         setBusy(false);
         if (!response.ok) {
           setError(body.error ?? "Transcription failed.");
@@ -63,6 +64,7 @@ export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string;
           return;
         }
         setText(body.transcript ?? "");
+        setTranscriptionMode(body.mode ?? null);
         setMode("TYPE");
       };
       next.start(); timer.current = setInterval(() => setSeconds((value) => value + 1), 1000);
@@ -89,6 +91,7 @@ export function DailySignalEntry({ prompt, initialText = "" }: { prompt: string;
       <div className="signal-input-heading"><h2>{mode === "VOICE" ? "Record your update" : "Tell us in your own words"}</h2><p>{mode === "VOICE" ? "Tap stop when you’re done." : "Edit your words before CareLoad reviews them."}</p></div>
       {mode === "VOICE" && <><button className={`microphone ${recording ? "recording" : ""}`} aria-label={recording ? "Stop recording" : "Start recording"} onClick={() => recording ? recorder.current?.stop() : void startRecording()}>{recording ? <Square /> : <Mic />}</button><p aria-live="polite">{recording ? `Recording ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}` : "Tap to record"}</p>{recording && <button className="text-button" onClick={() => { chunks.current = []; recorder.current?.stop(); setRecording(false); }}><X /> Cancel recording</button>}</>}
       {mode === "TYPE" && <label className="field">Your update<textarea value={text} onChange={(event) => setText(event.target.value)} placeholder="Tell CareLoad how today feels…" /></label>}
+      {mode === "TYPE" && transcriptionMode && <p className="transcription-mode" role="status">{transcriptionMode === "LIVE" ? "Transcribed live with ElevenLabs Scribe v2." : "Demo transcript used because fixture mode is on."}</p>}
       {error && <div className="error-message" role="alert">{error}</div>}
       {mode === "TYPE" && <PrimaryButton onClick={() => void analyse()}>{busy ? "Analysing…" : "Review what CareLoad understood"}</PrimaryButton>}
       {error && <SecondaryButton onClick={() => void analyse(true)}>Use demo extraction</SecondaryButton>}

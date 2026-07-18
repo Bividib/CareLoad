@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { expandRecurrence } from "@/domain/care-plan/recurrence";
 import { planCare } from "@/domain/care-plan/planner";
 import type { PlannerTask } from "@/domain/care-plan/types";
+import { stressTestMetricsSchema } from "@/lib/stress-test";
 
 const update: PlannerTask = {
   id: "bp-update", title: "Twice-daily blood-pressure measurement", frequency: "TWICE_DAILY",
@@ -22,5 +23,20 @@ describe("Care Plan Stress Test domain", () => {
     const result = planCare({ rangeStart: "2026-07-17", rangeEnd: "2026-07-17", tasks: [update], anchors: [{ id: "care", title: "Childcare", date: "2026-07-17", weekdays: ["FRI"], startTime: "17:00", endTime: "20:00", protected: true, location: "home" }], preferences: [], frictions: [], supportPeople: [] });
     expect(result.unplaced).toHaveLength(1);
     expect(result.unplaced[0].status).toBe("NEEDS_CLARIFICATION");
+  });
+  it("validates calculated Stress Test metrics before persistence or display", () => {
+    expect(stressTestMetricsSchema.parse({
+      actionsAdded: 28,
+      minutesAdded: 140,
+      interruptionsBeforeOptimisation: 28,
+      interruptionsAfterOptimisation: 27,
+      workConflicts: 0,
+      familyConflicts: 1,
+      locationOrEquipmentConflicts: 0,
+      bundledTasks: 12,
+      movedTasks: 0,
+      delegatedTasks: 1,
+      unplacedTasks: 1,
+    })).toMatchObject({ actionsAdded: 28, minutesAdded: 140, unplacedTasks: 1 });
   });
 });

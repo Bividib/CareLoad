@@ -11,6 +11,10 @@ export async function POST(request: Request) {
   }
   const parsed = requestSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Reset confirmation required." }, { status: 400 });
+  const fixtureMode = (await db.demoSetting.findUnique({ where: { id: "demo" } }))?.fixtureMode;
   await resetSyntheticData(db);
+  if (fixtureMode === false) {
+    await db.demoSetting.update({ where: { id: "demo" }, data: { fixtureMode: false } });
+  }
   return NextResponse.json({ ok: true, patientId: "eleanor-reed" });
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { fixtureExtraction, liveExtraction } from "@/lib/document-extraction";
 import { persistExtraction } from "@/lib/candidate-service";
+import { safeAiError } from "@/lib/ai-errors";
 const schema = z.object({ documentIds: z.array(z.string()).min(1).max(3), forceFixture: z.boolean().default(false) });
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
@@ -15,7 +16,10 @@ export async function POST(request: Request) {
     where: { id: { in: documents.map((document) => document.id) } },
     data: { status: "PROCESSING", errorMessage: null },
   });
-  const useFixture = parsed.data.forceFixture || process.env.DEMO_AI_FALLBACK === "true";
+  const setting = await db.demoSetting.findUnique({ where: { id: "demo" } });
+  const useFixture = parsed.data.forceFixture
+    || setting?.fixtureMode === true
+    || process.env.DEMO_AI_FALLBACK === "true";
   const extracted = await Promise.all(parsed.data.documentIds.map(async (id) => {
     const document = byId.get(id);
     if (!document) return { id, status: "FAILED" as const, error: "Document not found." };
@@ -25,10 +29,12 @@ export async function POST(request: Request) {
         : await liveExtraction(document.storagePath, document.mimeType);
       return { id, status: "EXTRACTED" as const, extraction };
     } catch (error) {
+      const safeError = safeAiError(error);
       return {
         id,
         status: "FAILED" as const,
-        error: error instanceof Error ? error.message : "Extraction failed.",
+        error: safeError.message,
+        errorCode: safeError.code,
       };
     }
   }));
@@ -41,8 +47,17 @@ export async function POST(request: Request) {
       if (byId.has(result.id)) {
         await db.careDocument.update({ where: { id: result.id }, data: { status: "FAILED", errorMessage: result.error } });
       }
-      results.push({ id: result.id, status: result.status, error: result.error });
+      results.push({ id: result.id, status: result.status, error: result.error, errorCode: result.errorCode });
     }
   }
-  return NextResponse.json({ results, hasFailures: results.some((result) => result.status === "FAILED") });
+  const hasFailures = results.some((result) => result.status === "FAILED");
+  const firstFailure = results.find((result) => result.status === "FAILED");
+  return NextResponse.json(
+    {
+      results,
+      hasFailures,
+      error: firstFailure && "error" in firstFailure ? firstFailure.error : undefined,
+    },
+    { status: hasFailures ? 502 : 200 },
+  );
 }

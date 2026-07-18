@@ -49,8 +49,8 @@ export function questionIdsForExtraction(extraction: { observations: Array<{ dom
     item.value.toLocaleLowerCase().includes("persistent"),
   );
   if (urgentStomach) return ["ABDOMINAL_PAIN_PERSISTENCE", "PAIN_SPREADS_TO_BACK"];
-  const vagueStomach = extraction.observations.some((item) => item.domain === "stomach" && !item.durationText);
-  if (vagueStomach) return ["BOWEL_DURATION", "DAILY_ACTIVITY_IMPACT"];
+  const stomachObservation = extraction.observations.some((item) => item.domain === "stomach");
+  if (stomachObservation) return ["BOWEL_DURATION", "DAILY_ACTIVITY_IMPACT"];
   return extraction.suggestedQuestionIds;
 }
 
