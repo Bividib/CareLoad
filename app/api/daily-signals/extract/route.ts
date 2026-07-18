@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { buildDailySignalContext, extractDailySignal, trendSummary } from "@/lib/daily-signal";
+import { buildDailySignalContext, extractDailySignal, resolveDailySignalAnalysisMode, trendSummary } from "@/lib/daily-signal";
 import { questionIdsForExtraction, selectQuestions } from "@/domain/daily-signal/questions";
+import { fixtureAnswersForText } from "@/domain/daily-signal/fixtures";
 import { safeAiError } from "@/lib/ai-errors";
 import { currentDemoDate } from "@/lib/demo-date";
 
@@ -19,9 +20,13 @@ export async function POST(request: Request) {
   const context = await buildDailySignalContext(db, patientId);
   const setting = await db.demoSetting.findUnique({ where: { id: "demo" } });
   try {
-    const extraction = await extractDailySignal(parsed.data.text, context, parsed.data.forceFixture || setting?.fixtureMode);
+    const analysisMode = resolveDailySignalAnalysisMode(Boolean(parsed.data.forceFixture || setting?.fixtureMode));
+    const extraction = await extractDailySignal(parsed.data.text, context, analysisMode);
     const validatedExtraction = { ...extraction, shareSuggested: false, shareReason: null };
     const questions = selectQuestions(questionIdsForExtraction(validatedExtraction), context.conditions);
+    const fixtureDefaults = analysisMode === "FIXTURE" ? fixtureAnswersForText(parsed.data.text) : {};
+    const answers = Object.fromEntries(questions.flatMap((question) => fixtureDefaults[question.id] ? [[question.id, fixtureDefaults[question.id]]] : []));
+    const fixtureAnswersApplied = Object.keys(answers).length > 0;
     const recent = await db.dailySignal.findMany({ where: { patientId }, orderBy: { createdAt: "desc" }, take: 7 });
     const id = `signal-${Date.now()}`;
     const signal = await db.dailySignal.create({ data: {
@@ -29,11 +34,12 @@ export async function POST(request: Request) {
       rawText: parsed.data.text, transcript: parsed.data.inputMode === "VOICE" ? parsed.data.text : null,
       status: questions.length ? "QUESTIONS" : "CONFIRMED",
       extractionJson: JSON.stringify(validatedExtraction), questionsJson: JSON.stringify(questions),
+      answersJson: JSON.stringify(answers),
       confirmedJson: questions.length ? null : JSON.stringify(validatedExtraction.observations),
       shareSuggested: validatedExtraction.shareSuggested, shareReason: validatedExtraction.shareReason,
       trendSummary: trendSummary(validatedExtraction, recent),
     } });
-    return NextResponse.json({ id: signal.id, extraction: validatedExtraction, questions });
+    return NextResponse.json({ id: signal.id, extraction: validatedExtraction, questions, analysisMode, fixtureAnswersApplied });
   } catch (error) {
     const safeError = safeAiError(error);
     return NextResponse.json({

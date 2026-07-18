@@ -64,17 +64,26 @@ describe("Daily Signal fixture classification", () => {
 
 describe("deterministic post-answer disposition", () => {
   it("suggests sharing persistent GI symptoms affecting usual activities", () => {
-    expect(evaluateDailySignalDisposition(fixtureForText("very bad, upset tummy"), {
+    const disposition = evaluateDailySignalDisposition(fixtureForText("My stomach has felt uncomfortable for three days, it is worse today, and it is affecting my usual activities."), {
       BOWEL_DURATION: "3–5 days",
       DAILY_ACTIVITY_IMPACT: "Yes",
-    }).outcome).toBe("SHARE_SUGGESTED");
+    });
+    expect(disposition.outcome).toBe("SHARE_SUGGESTED");
+    expect(disposition.factors.map((factor) => factor.code)).toEqual([
+      "NEW_OR_WORSENING_CHANGE",
+      "MULTI_DAY_DURATION",
+      "ACTIVITY_IMPACT",
+      "DIFFERS_FROM_RECENT_PATTERN",
+    ]);
   });
 
   it("records a minor busy-day observation without support needs", () => {
-    expect(evaluateDailySignalDisposition(dailySignalFixtures.FATIGUE_AND_BUSY_DAY, {
+    const disposition = evaluateDailySignalDisposition(dailySignalFixtures.FATIGUE_AND_BUSY_DAY, {
       DAILY_ACTIVITY_IMPACT: "No",
       SUPPORT_NEEDED: "No",
-    }).outcome).toBe("RECORD_ONLY");
+    });
+    expect(disposition.outcome).toBe("RECORD_ONLY");
+    expect(disposition.factors.map((factor) => factor.code)).toEqual(["NO_SHARE_FACTOR"]);
   });
 
   it("preserves the configured urgent demonstration outcome", () => {

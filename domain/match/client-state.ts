@@ -1,7 +1,12 @@
 import { z } from "zod";
-import type { LocalPeerMessage, MatchProfileId } from "@/domain/match/fixtures";
+import {
+  existingMatchInbox,
+  type LocalPeerMessage,
+  type MatchProfileId,
+} from "@/domain/match/fixtures";
 
 const storageKey = "careload.match.frontend-state.v1";
+export const matchClientStateChangedEvent = "careload:match-state-changed";
 
 const localPeerMessageSchema = z.object({
   id: z.string(),
@@ -33,17 +38,23 @@ export const emptyMatchClientState: MatchClientState = {
   messages: {},
 };
 
+function notifyMatchClientStateChanged() {
+  window.dispatchEvent(new Event(matchClientStateChangedEvent));
+}
+
 function parseStoredState(value: string | null, resetGeneration: string): MatchClientState {
   if (!value) return emptyMatchClientState;
   try {
     const parsed = matchClientStateSchema.safeParse(JSON.parse(value));
     if (!parsed.success || parsed.data.resetGeneration !== resetGeneration) {
       window.localStorage.removeItem(storageKey);
+      notifyMatchClientStateChanged();
       return emptyMatchClientState;
     }
     return parsed.data;
   } catch {
     window.localStorage.removeItem(storageKey);
+    notifyMatchClientStateChanged();
     return emptyMatchClientState;
   }
 }
@@ -52,11 +63,29 @@ export function readMatchClientState(resetGeneration: string): MatchClientState 
   return parseStoredState(window.localStorage.getItem(storageKey), resetGeneration);
 }
 
+export function readMatchNotificationState(): MatchClientState {
+  const value = window.localStorage.getItem(storageKey);
+  if (!value) return emptyMatchClientState;
+  try {
+    const parsed = matchClientStateSchema.safeParse(JSON.parse(value));
+    return parsed.success ? parsed.data : emptyMatchClientState;
+  } catch {
+    return emptyMatchClientState;
+  }
+}
+
+export function countUnreadMatchConversations(state: MatchClientState): number {
+  return existingMatchInbox.filter(
+    (profile) => profile.unread && !state.readProfileIds.includes(profile.id),
+  ).length;
+}
+
 function writeMatchClientState(
   state: MatchClientState,
   resetGeneration: string,
 ): MatchClientState {
   window.localStorage.setItem(storageKey, JSON.stringify({ ...state, resetGeneration }));
+  notifyMatchClientStateChanged();
   return state;
 }
 

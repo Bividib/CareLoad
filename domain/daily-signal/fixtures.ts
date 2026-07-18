@@ -12,6 +12,8 @@ export const dailySignalFixtures: Record<string, DailySignalExtraction> = {
   URGENT_SYNTHETIC_RULE: { observations: [observation("stomach", "severe persistent pain described as spreading to back", "severe pain that has not stopped and spreads to my back", "WORSE")], missingInformation: [], suggestedQuestionIds: ["ABDOMINAL_PAIN_PERSISTENCE", "PAIN_SPREADS_TO_BACK"], differentFromRecentPattern: true, shareSuggested: false, shareReason: null, requiresDeterministicRuleCheck: true },
 };
 
+export type DailySignalFixtureAnswers = Record<string, string>;
+
 function normalize(text: string) {
   return text.toLocaleLowerCase()
     .replace(/[’‘]/g, "'")
@@ -43,4 +45,12 @@ export function fixtureForText(text: string): DailySignalExtraction {
     };
   }
   return dailySignalFixtures.FATIGUE_AND_BUSY_DAY;
+}
+
+export function fixtureAnswersForText(text: string): DailySignalFixtureAnswers {
+  const extraction = fixtureForText(text);
+  return extraction.observations.some((item) => item.domain === "stomach")
+    && !extraction.observations.some((item) => item.value.toLocaleLowerCase().includes("severe persistent"))
+    ? { BOWEL_DURATION: "3–5 days", DAILY_ACTIVITY_IMPACT: "Yes" }
+    : {};
 }

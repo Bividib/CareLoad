@@ -623,8 +623,6 @@ export function ReviewScreen({
   const unresolved = rows.filter(
     (row) => row.status === "NEEDS_CLINICAL_VERIFICATION",
   );
-  const extractionModes = new Set(rows.map((row) => row.document.extractionMode).filter(Boolean));
-  const liveExtraction = extractionModes.size === 1 && extractionModes.has("LIVE");
   const preferredTitles = [
     "Morning blood-pressure check",
     "Take Metformin with breakfast",
@@ -642,11 +640,6 @@ export function ReviewScreen({
         title="We found your care tasks"
         subtitle="We’ve read the demo documents and pulled out the key tasks to review."
       />
-      <StatusBanner title={liveExtraction ? "Live OpenAI extraction" : "Demo extraction"}>
-        {liveExtraction
-          ? "These candidate tasks were extracted live with the configured OpenAI text model, then matched against verified task templates."
-          : "These candidate tasks came from deterministic demo fixtures. Turn fixture mode off before extraction to use OpenAI."}
-      </StatusBanner>
       <div className="compact-task-list">
         {visibleRows.map((task, index) => {
           const Icon = icons[index] ?? FileText;

@@ -26,8 +26,20 @@ export async function buildDailySignalContext(db: PrismaClient, patientId: strin
 
 const rules = `Do not diagnose. Do not attribute an observation to a medicine. Do not recommend medication changes. Preserve uncertainty. Every observation must include the patient's exact supporting phrase. Choose no more than two IDs from the supplied approved catalogue. Do not invent questions. Use observational language only. Do not provide clinical advice.`;
 
-export async function extractDailySignal(text: string, context: Awaited<ReturnType<typeof buildDailySignalContext>>, forceFixture = false): Promise<DailySignalExtraction> {
-  if (forceFixture || process.env.DEMO_AI_FALLBACK === "true" || !process.env.OPENAI_API_KEY) return dailySignalExtractionSchema.parse(fixtureForText(text));
+export type DailySignalAnalysisMode = "FIXTURE" | "OPENAI";
+
+export function resolveDailySignalAnalysisMode(forceFixture: boolean): DailySignalAnalysisMode {
+  return forceFixture || process.env.DEMO_AI_FALLBACK === "true" || !process.env.OPENAI_API_KEY
+    ? "FIXTURE"
+    : "OPENAI";
+}
+
+export async function extractDailySignal(
+  text: string,
+  context: Awaited<ReturnType<typeof buildDailySignalContext>>,
+  analysisMode: DailySignalAnalysisMode,
+): Promise<DailySignalExtraction> {
+  if (analysisMode === "FIXTURE") return dailySignalExtractionSchema.parse(fixtureForText(text));
   const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     maxRetries: 0,

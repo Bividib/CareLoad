@@ -22,6 +22,7 @@ import {
 } from "@/domain/match/fixtures";
 import {
   appendLocalPeerMessage,
+  countUnreadMatchConversations,
   emptyMatchClientState,
   markMatchConversationRead,
   readMatchClientState,
@@ -71,9 +72,7 @@ export function MatchInboxScreen({ resetGeneration }: { resetGeneration: string 
   const inboxProfiles: MatchProfile[] = clientState.marcusRevealed
     ? [...existingMatchInbox, dailyMatch.profile]
     : [...existingMatchInbox];
-  const unreadCount = existingMatchInbox.filter(
-    (profile) => profile.unread && !clientState.readProfileIds.includes(profile.id),
-  ).length;
+  const unreadCount = countUnreadMatchConversations(clientState);
 
   return (
     <MobileShell active="/patient/match">

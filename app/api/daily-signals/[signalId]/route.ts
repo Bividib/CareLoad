@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { dailySignalExtractionSchema } from "@/domain/daily-signal/schema";
-import { urgentDemonstrationRule } from "@/domain/daily-signal/questions";
+import { urgentDemonstrationRule, type QuestionDefinition } from "@/domain/daily-signal/questions";
 import { evaluateDailySignalDisposition } from "@/domain/daily-signal/disposition";
+import { buildDailySignalEvidenceGraph } from "@/domain/daily-signal/evidence-graph";
 
 const requestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("ANSWER"), answers: z.record(z.string(), z.string()) }),
@@ -26,7 +27,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ si
   const extraction = signal.extractionJson ? dailySignalExtractionSchema.parse(JSON.parse(signal.extractionJson)) : null;
   if (!extraction) return NextResponse.json({ error: "Daily Signal extraction is missing." }, { status: 409 });
   const answers = JSON.parse(signal.answersJson) as Record<string, string>;
+  const questions = JSON.parse(signal.questionsJson) as QuestionDefinition[];
   const disposition = evaluateDailySignalDisposition(extraction, answers);
+  const evidenceGraph = buildDailySignalEvidenceGraph({ rawText: signal.rawText, extraction, questions, answers, trendSummary: signal.trendSummary, disposition });
   const urgent = disposition.outcome === "URGENT_DEMO" || urgentDemonstrationRule(answers);
   const persistedStatus = urgent ? "URGENT_DEMO" : status;
   await db.dailySignal.update({ where: { id: signalId }, data: {
@@ -37,5 +40,5 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ si
     shareReason: disposition.reason,
   } });
   await db.auditEvent.create({ data: { id: `audit-${status.toLowerCase()}-${Date.now()}`, patientId: signal.patientId, type: `DAILY_SIGNAL_${status}`, summary: `Patient ${status === "RECORDED_ONLY" ? "recorded privately" : "confirmed"} a synthetic Daily Signal` } });
-  return NextResponse.json({ ok: true, status: persistedStatus, disposition });
+  return NextResponse.json({ ok: true, status: persistedStatus, disposition, evidenceGraph });
 }
