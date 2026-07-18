@@ -27,6 +27,9 @@ Milestones 1–8 were re-verified during final acceptance.
 - Share-suggested and record-only states have distinct, non-dead-end actions.
   Record-only preserves patient choice through **Send anyway** without creating
   a message or response job when the patient returns to Today.
+- The supplied two-outcome UI sequence is represented as separate input-choice,
+  editable-transcript, question, answer-confirmation, disposition, response
+  waiting, and **What this means for today** screens.
 - Unit and component coverage includes the original regression, GI priority,
   question selection, both routine dispositions, and the urgent demonstration
   rule. Live-mode extraction was also verified for “very bad, upset tummy”:

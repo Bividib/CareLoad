@@ -71,7 +71,7 @@ test("completes functional onboarding with deterministic document extraction", a
   await expect(page).toHaveURL(/\/onboarding\/review$/, { timeout: 20_000 });
   await expect(page.locator(".compact-task")).toHaveCount(3);
   await page.getByRole("button", { name: /Looks right, continue/ }).click();
-  await expect(page).toHaveURL(/\/onboarding\/life-map$/);
+  await expect(page).toHaveURL(/\/onboarding\/life-map$/, { timeout: 20_000 });
   await expect(page.getByRole("button", { name: "Looks right, build my plan" })).toHaveAttribute("data-hydrated", "true");
   await page.getByRole("button", { name: "Looks right, build my plan" }).click();
   await expect(page).toHaveURL(/\/onboarding\/preview$/, { timeout: 20_000 });

@@ -46,8 +46,21 @@ export function MessagesClient({ initial, selectedId, planUpdate }: { initial: M
   return <MobileShell active="/patient/messages"><PageHeader title="Messages" subtitle="Secure messages with your care team" />
     {toast && <div className="toast" role="status">{toast}</div>}
     {!active ? <RoundedCard><SectionTitle>No messages yet</SectionTitle><p className="muted">A patient-approved update will appear here after it is sent.</p></RoundedCard> :
-      <RoundedCard className="conversation-card"><div className="conversation-heading"><Sparkles /><strong>Your conversation</strong></div><div className="day-divider"><span />Today<span /></div>{active.messages.map((message) => <div key={message.id} className={`message ${message.author === "PATIENT" ? "patient" : "care-team"}`}><div className="message-author"><span className="round-icon mint">{message.author === "PATIENT" ? <UserRound /> : <Sparkles />}</span><div><strong>{message.author === "PATIENT" ? "You" : "Simulated care-team response"}</strong><small>{message.author === "PATIENT" ? "Care update" : "Dr Ahmed — care team"} · {message.createdAt.slice(11, 16)}</small></div></div><p>{message.body}</p><span className="reviewed">Reviewed at {message.createdAt.slice(11, 16)} <CheckCheck /></span>{message.author === "SIMULATED_CARE_TEAM" && (() => { const meta = JSON.parse(message.metadataJson) as { actionsForToday?: string[] }; return <div className="meaning"><Info /><div><strong>What this means for today</strong><ul>{meta.actionsForToday?.map((item) => <li key={item}>{item.replaceAll("synthetic ", "")}</li>)}</ul></div></div>; })()}{message.author === "SIMULATED_CARE_TEAM" && planUpdate && <a className="update-message-link" href={`/patient/updates/${planUpdate.id}`}><span><strong>View your care-plan update</strong><small>{planUpdate.title}</small></span>›</a>}</div>)}
-      {active.jobs.some((job) => job.state === "PENDING") && <div className="response-wait" role="status"><span /> Awaiting a care-team response…</div>}</RoundedCard>}
+      <RoundedCard className="conversation-card">
+        <div className="conversation-heading"><Sparkles /><strong>Your conversation</strong></div>
+        <div className="day-divider"><span />Today<span /></div>
+        {active.messages.map((message) => {
+          const careTeam = message.author === "SIMULATED_CARE_TEAM";
+          return <div key={message.id} className={`message ${careTeam ? "care-team" : "patient"}`}>
+            <div className="message-author"><span className="round-icon mint">{careTeam ? <Sparkles /> : <UserRound />}</span><div><strong>{careTeam ? "Simulated care-team response" : "You"}</strong><small>{careTeam ? "Dr Ahmed — care team" : "Care update"} · {message.createdAt.slice(11, 16)}</small></div></div>
+            <p>{message.body}</p>
+            <span className="reviewed">Reviewed at {message.createdAt.slice(11, 16)} <CheckCheck /></span>
+            {careTeam && <a className="meaning-link" href={`/patient/messages/${active.id}/today`}><Info /><span><strong>What this means for today</strong><small>Review the recorded next steps</small></span><b>›</b></a>}
+            {careTeam && planUpdate && <a className="update-message-link" href={`/patient/updates/${planUpdate.id}`}><span><strong>View your care-plan update</strong><small>{planUpdate.title}</small></span>›</a>}
+          </div>;
+        })}
+        {active.jobs.some((job) => job.state === "PENDING") && <div className="response-wait" role="status"><span /> Awaiting fictional response…<small>Typically within 10 seconds.</small></div>}
+      </RoundedCard>}
     <div className="ai-note"><Sparkles /> CareLoad can help summarise updates. Your care team makes all clinical decisions.</div>
   </MobileShell>;
 }
