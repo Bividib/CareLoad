@@ -4,20 +4,24 @@ test("completes the patient Daily Signal, delayed response, Stress Test, and acc
   test.setTimeout(120_000);
   await page.request.post("/api/demo/checkpoint", { data: { checkpoint: "INITIAL_PLAN_READY" } });
   await page.goto("/patient/today");
-  await page.getByRole("link", { name: "Type" }).click();
+  await page.getByRole("link", { name: "Check in" }).click();
   await page.getByRole("button", { name: "Type" }).click();
-  await page.getByLabel("Your check-in").fill("My stomach has felt uncomfortable for a few days and I am more tired than usual, but I am still eating and drinking.");
+  await page.getByLabel("Your update").fill("My stomach has felt uncomfortable for a few days and I am more tired than usual, but I am still eating and drinking.");
   await page.getByRole("button", { name: /Review what CareLoad understood/ }).click();
   await expect(page).toHaveURL(/daily-signal\/review/);
   const selects = page.locator("select");
   for (let index = 0; index < await selects.count(); index++) await selects.nth(index).selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Yes, that is right" }).click();
+  await page.getByRole("button", { name: "Review your answers" }).click();
+  await page.getByRole("button", { name: /Yes, that’s right/ }).click();
   await page.getByRole("button", { name: "Send update" }).click();
   await expect(page).toHaveURL(/patient\/messages/);
   await expect(page.getByText(/Awaiting fictional response/)).toBeVisible();
   await page.reload();
   await expect(page.getByText(/Awaiting fictional response/)).toBeVisible();
   await expect(page.getByText("Simulated care-team response", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await page.getByRole("link", { name: /What this means for today/ }).click();
+  await expect(page.getByRole("heading", { name: "What this means for today" })).toBeVisible();
+  await page.getByRole("link", { name: /Back to Messages/ }).click();
 
   await page.request.post("/api/care-plan-changes/trigger");
   await page.goto("/patient/updates/demo-update");
@@ -44,4 +48,24 @@ test("fixture mode and persisted pending response survive navigation", async ({ 
   await page.request.post("/api/demo/process-responses");
   await page.reload();
   await expect(page.getByText("Simulated care-team response", { exact: true })).toBeVisible();
+});
+
+test("records a minor Daily Signal without creating a message", async ({ page }) => {
+  await page.request.post("/api/demo/checkpoint", { data: { checkpoint: "INITIAL_PLAN_READY" } });
+  await page.goto("/patient/today");
+  await page.getByRole("link", { name: "Check in" }).click();
+  await page.getByRole("button", { name: "Type" }).click();
+  await page.getByLabel("Your update").fill("I feel a little tired after a busy day, but I can do my usual activities and I do not need any support.");
+  await page.getByRole("button", { name: /Review what CareLoad understood/ }).click();
+  await page.getByLabel(/Is this affecting your usual daily activities/).selectOption("No");
+  await page.getByLabel(/Would practical support help today/).selectOption("No");
+  await page.getByRole("button", { name: "Review your answers" }).click();
+  await page.getByRole("button", { name: /Yes, that’s right/ }).click();
+  await expect(page.getByText("Saved to your Daily Signals")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Send anyway/ })).toBeVisible();
+  await page.getByRole("button", { name: /Return to Today/ }).click();
+  await expect(page).toHaveURL(/patient\/today/);
+  await expect(page.getByText("Today’s optional check-in is complete.")).toBeVisible();
+  await page.goto("/patient/messages");
+  await expect(page.getByText("No messages yet")).toBeVisible();
 });

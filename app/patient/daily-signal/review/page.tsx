@@ -18,5 +18,6 @@ export default async function DailySignalReviewPage({ searchParams }: { searchPa
     questions: JSON.parse(signal.questionsJson) as QuestionDefinition[],
     answers: JSON.parse(signal.answersJson) as Record<string, string>,
     urgent: signal.urgentRuleTriggered, trendSummary: signal.trendSummary,
+    status: signal.status, shareSuggested: signal.shareSuggested, shareReason: signal.shareReason,
   }} />;
 }

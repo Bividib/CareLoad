@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { responseDelayMs } from "@/lib/simulated-responses";
 
-const schema = z.object({ signalId: z.string().min(1) });
+const schema = z.object({ signalId: z.string().min(1), sendAnyway: z.boolean().optional() });
 
 export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json());
@@ -12,6 +12,7 @@ export async function POST(request: Request) {
     const result = await db.$transaction(async (tx) => {
       const signal = await tx.dailySignal.findUniqueOrThrow({ where: { id: parsed.data.signalId } });
       if (signal.status !== "CONFIRMED" || !signal.confirmedJson) throw new Error("Confirm the Daily Signal before sending.");
+      if (!signal.shareSuggested && !parsed.data.sendAnyway) throw new Error("Choose Send anyway to share this recorded update.");
       const threadId = `thread-signal-${signal.id}`;
       const messageId = `message-patient-${signal.id}`;
       const thread = await tx.messageThread.upsert({ where: { dailySignalId: signal.id }, create: { id: threadId, patientId: signal.patientId, dailySignalId: signal.id, subject: "Daily Signal update" }, update: {} });
@@ -27,4 +28,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to send update." }, { status: 409 });
   }
 }
-

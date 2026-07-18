@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DailySignalEntry } from "@/components/DailySignalFlow";
+import { DailySignalEntry, DailySignalReview } from "@/components/DailySignalFlow";
+import { fixtureForText, dailySignalFixtures } from "@/domain/daily-signal/fixtures";
+import { questionCatalogue } from "@/domain/daily-signal/questions";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
@@ -59,7 +61,7 @@ describe("DailySignalEntry microphone path", () => {
     fireEvent.click(screen.getByRole("button", { name: /Speak/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Microphone access was not available");
-    expect(screen.getByLabelText("Your check-in")).toBeVisible();
+    expect(screen.getByLabelText("Your update")).toBeVisible();
   });
 
   it("reports an unsupported MediaRecorder and keeps typed input available", async () => {
@@ -68,7 +70,7 @@ describe("DailySignalEntry microphone path", () => {
     fireEvent.click(screen.getByRole("button", { name: /Speak/ }));
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
     expect(screen.getByRole("alert")).toHaveTextContent("not supported");
-    expect(screen.getByLabelText("Your check-in")).toBeVisible();
+    expect(screen.getByLabelText("Your update")).toBeVisible();
   });
 
   it("shows an empty-audio error and returns the recorder to idle", async () => {
@@ -94,8 +96,8 @@ describe("DailySignalEntry microphone path", () => {
     MockMediaRecorder.latest?.ondataavailable?.({ data: new Blob(["audio"], { type: "audio/webm" }) });
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
     expect(await screen.findByDisplayValue("Fixture transcript")).toBeVisible();
-    fireEvent.change(screen.getByLabelText("Your check-in"), { target: { value: "Edited transcript" } });
-    expect(screen.getByLabelText("Your check-in")).toHaveValue("Edited transcript");
+    fireEvent.change(screen.getByLabelText("Your update"), { target: { value: "Edited transcript" } });
+    expect(screen.getByLabelText("Your update")).toHaveValue("Edited transcript");
     expect(fetchMock).toHaveBeenCalledWith("/api/audio/transcribe", expect.objectContaining({ method: "POST" }));
   });
 
@@ -111,6 +113,55 @@ describe("DailySignalEntry microphone path", () => {
     MockMediaRecorder.latest?.ondataavailable?.({ data: new Blob(["audio"], { type: "audio/webm" }) });
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Transcription failed");
-    expect(screen.getByLabelText("Your check-in")).toBeVisible();
+    expect(screen.getByLabelText("Your update")).toBeVisible();
+  });
+});
+
+const reviewBase = {
+  id: "signal-review",
+  rawText: "very bad, upset tummy",
+  extraction: fixtureForText("very bad, upset tummy"),
+  questions: questionCatalogue.filter((item) => ["BOWEL_DURATION", "DAILY_ACTIVITY_IMPACT"].includes(item.id)),
+  answers: {},
+  urgent: false,
+  trendSummary: null,
+  status: "QUESTIONS",
+  shareSuggested: false,
+  shareReason: null,
+};
+
+describe("DailySignalReview disposition branches", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("renders the share-suggested actions returned after answers are saved", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ answers: {} }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ disposition: { outcome: "SHARE_SUGGESTED", reason: "CareLoad suggests sharing because it has continued for several days." } }) }));
+    render(<DailySignalReview data={reviewBase} />);
+    fireEvent.change(screen.getByLabelText(/How long has your stomach felt upset/), { target: { value: "3–5 days" } });
+    fireEvent.change(screen.getByLabelText(/Is this affecting your usual daily activities/), { target: { value: "Yes" } });
+    fireEvent.click(screen.getByRole("button", { name: /Review your answers/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Yes, that’s right/ }));
+    expect(await screen.findByText("CareLoad suggests sharing this update")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Send update/ })).toBeVisible();
+  });
+
+  it("renders Return to Today, Send anyway, and Edit for record-only", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ answers: {} }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ disposition: { outcome: "RECORD_ONLY", reason: "CareLoad does not currently suggest sharing this update." } }) }));
+    render(<DailySignalReview data={{ ...reviewBase, extraction: dailySignalFixtures.FATIGUE_AND_BUSY_DAY, questions: questionCatalogue.filter((item) => ["DAILY_ACTIVITY_IMPACT", "SUPPORT_NEEDED"].includes(item.id)) }} />);
+    fireEvent.change(screen.getByLabelText(/Is this affecting your usual daily activities/), { target: { value: "No" } });
+    fireEvent.change(screen.getByLabelText(/Would practical support help today/), { target: { value: "No" } });
+    fireEvent.click(screen.getByRole("button", { name: /Review your answers/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Yes, that’s right/ }));
+    expect(await screen.findByText("Saved to your Daily Signals")).toBeVisible();
+    expect(screen.getByRole("button", { name: /Return to Today/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Send anyway/ })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Edit" })).toBeVisible();
   });
 });
