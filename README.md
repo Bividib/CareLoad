@@ -2,6 +2,8 @@
 
 CareLoad is a mobile-first, patient-only hackathon prototype for Eleanor Reed, a fictional person living with several long-term conditions. It addresses the problem that individually sensible care instructions can become an unrealistic combined workload. CareLoad compiles synthetic instructions into a source-grounded Care Work Graph, fits only verified task templates around Eleanor’s Life Map with a deterministic planner, and stress-tests one synthetic cardiology update.
 
+Demo Video: youtube.com/watch?v=Bt0LcxpqTDE&feature=youtu.be
+
 > Synthetic information only. Not a medical device. Not for real patient care. CareLoad does not diagnose, triage, prescribe, recommend medication changes, or connect to a real care team.
 
 ## Solution and architecture
